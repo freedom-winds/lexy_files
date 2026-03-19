@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback, ReactNode } from 'react';
-import { AuthContext, User } from '../lib/auth';
+import { useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
+import { AuthContext } from '../lib/auth';
+import type { User } from '../lib/auth';
 import api from '../lib/api';
 
 interface AuthProviderProps {

@@ -1,7 +1,8 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { Files, LogIn, LogOut, User, LayoutDashboard, Menu, X } from 'lucide-react';
-import { useState, ReactNode } from 'react';
+import { Files, LogOut, User, LayoutDashboard, Menu, X } from 'lucide-react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import clsx from 'clsx';
 
 interface LayoutProps {

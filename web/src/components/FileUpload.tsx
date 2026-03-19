@@ -1,4 +1,5 @@
-import { useState, useRef, DragEvent, ChangeEvent } from 'react';
+import { useState, useRef } from 'react';
+import type { DragEvent, ChangeEvent } from 'react';
 import { Upload, CheckCircle, Copy, ExternalLink, X, FileIcon } from 'lucide-react';
 import clsx from 'clsx';
 import api from '../lib/api';

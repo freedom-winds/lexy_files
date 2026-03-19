@@ -37,8 +37,18 @@ export function formatRelativeDate(iso: string): string {
 
 export function getApiError(err: unknown): string {
   if (err && typeof err === 'object') {
-    const e = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
-    if (e.response?.data?.error) return e.response.data.error;
+    const e = err as {
+      response?: {
+        data?: {
+          error?: { code?: string; message?: string } | string;
+          message?: string;
+        };
+      };
+      message?: string;
+    };
+    const errData = e.response?.data?.error;
+    if (errData && typeof errData === 'object' && errData.message) return errData.message;
+    if (typeof errData === 'string') return errData;
     if (e.response?.data?.message) return e.response.data.message;
     if (e.message) return e.message;
   }
