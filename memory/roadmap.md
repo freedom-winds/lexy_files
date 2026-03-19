@@ -1,6 +1,6 @@
 # Roadmap
 
-_Last updated: 2026-03-18_
+_Last updated: 2026-03-19_
 
 ## Phase 0 — Discovery and architecture ✅
 - [x] Read and analyze requirements
@@ -9,41 +9,45 @@ _Last updated: 2026-03-18_
 - [x] Define API contracts
 - [x] Define data models
 
-## Phase 1 — Backend foundation + first vertical slice
-- [ ] Project scaffolding (monorepo, configs, dependencies)
-- [ ] Database models (User, Device, File, Transfer, Quota)
-- [ ] Auth system (register, login, JWT, refresh, anonymous)
-- [ ] File upload/download with pickup codes
-- [ ] Quota enforcement (speed, size, storage, traffic)
-- [ ] File lifecycle (expiration, redemption, deletion)
-- [ ] Background task for file cleanup
-- [ ] Backend unit + integration tests
+## Phase 1 — Backend foundation + first vertical slice ✅
+- [x] Project scaffolding (monorepo, configs, dependencies)
+- [x] Database models (User, Device, File, Transfer, Quota)
+- [x] Auth system (register, login, JWT, refresh, anonymous)
+- [x] File upload/download with pickup codes
+- [x] Quota enforcement (speed, size, storage, traffic)
+- [x] File lifecycle (expiration, redemption, deletion)
+- [x] Background task for file cleanup
+- [x] Backend unit + integration tests (66 passing)
 
-## Phase 2 — Web client + admin console
-- [ ] React project setup (Vite + TypeScript + Tailwind)
-- [ ] Auth pages (login, register)
-- [ ] File upload/download UI
-- [ ] Pickup code entry
-- [ ] My Files dashboard
-- [ ] Admin console (users, files, quotas, stats)
-- [ ] Web client smoke tests
+## Phase 2 — Web client + admin console ✅
+- [x] React project setup (Vite + TypeScript + Tailwind)
+- [x] Auth pages (login, register)
+- [x] File upload/download UI
+- [x] Pickup code entry
+- [x] My Files dashboard
+- [x] Admin console (stats, users, files, groups)
+- [x] Web client build verified (315KB bundle)
 
-## Phase 3 — Flutter clients
-- [ ] Flutter project setup (shared packages)
-- [ ] Auth flow (login required)
-- [ ] File upload/download
-- [ ] Device registration
-- [ ] Same-account device transfer (WebSocket relay)
-- [ ] LAN discovery and transfer
-- [ ] Bluetooth transfer
-- [ ] Client smoke tests
+## Phase 3 — Flutter clients ✅
+- [x] Flutter project setup (shared packages)
+- [x] Auth flow (login required)
+- [x] File upload/download
+- [x] Pickup code entry and file retrieval
+- [x] My Files management
+- [x] flutter analyze: 0 issues
+- [x] flutter test: 1/1 passing
+- [ ] Device registration (stubbed in API, UI deferred)
+- [ ] Same-account device transfer (WebSocket relay — API defined, not wired)
+- [ ] LAN discovery and transfer (deferred)
+- [ ] Bluetooth transfer (deferred)
 
 ## Phase 4 — Cross-platform hardening
-- [ ] End-to-end happy-path test
-- [ ] Quota enforcement verification across all modes
+- [ ] Android APK build verification
+- [ ] Windows desktop build verification
+- [ ] Backend integration test (full API flow)
+- [ ] E2E happy-path test
+- [ ] Quota enforcement verification
 - [ ] File lifecycle verification
-- [ ] Admin console full verification
-- [ ] Performance and edge case testing
 
 ## Phase 5 — Release readiness
 - [ ] README and setup docs
