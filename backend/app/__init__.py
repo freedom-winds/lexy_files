@@ -34,6 +34,9 @@ def create_app(config_name: str | None = None) -> Flask:
     # Register error handlers
     register_error_handlers(app)
 
+    # Register WebSocket event handlers (must happen after socketio.init_app)
+    from app import ws  # noqa: F401 – registers handlers as a side-effect
+
     # JWT token revocation check
     @jwt.token_in_blocklist_loader
     def check_if_token_revoked(jwt_header, jwt_payload):

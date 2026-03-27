@@ -8,6 +8,8 @@ import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/pickup_screen.dart';
 import 'screens/my_files_screen.dart';
+import 'screens/devices_screen.dart';
+import 'screens/transfer_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +46,10 @@ class LexyFilesApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => const RegisterScreen());
           case '/my-files':
             return MaterialPageRoute(builder: (_) => const MyFilesScreen());
+          case '/devices':
+            return MaterialPageRoute(builder: (_) => const DevicesScreen());
+          case '/transfer':
+            return MaterialPageRoute(builder: (_) => const TransferScreen());
           case '/pickup':
             final code = settings.arguments as String;
             return MaterialPageRoute(builder: (_) => PickupScreen(code: code));

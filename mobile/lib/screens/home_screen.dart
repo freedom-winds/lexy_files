@@ -118,6 +118,16 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           if (auth.isAuthenticated) ...[
             IconButton(
+              icon: const Icon(Icons.devices),
+              tooltip: 'Devices',
+              onPressed: () => Navigator.of(context).pushNamed('/devices'),
+            ),
+            IconButton(
+              icon: const Icon(Icons.swap_horiz),
+              tooltip: 'Transfer',
+              onPressed: () => Navigator.of(context).pushNamed('/transfer'),
+            ),
+            IconButton(
               icon: const Icon(Icons.file_copy_outlined),
               tooltip: 'My Files',
               onPressed: () => Navigator.of(context).pushNamed('/my-files'),

@@ -66,8 +66,17 @@ def create_transfer():
         receiver_id = target_device.user_id
         receiver_device_id = target_device.id
 
+    # Resolve the sender's device (optional – passed as sender_device_id).
+    sender_device_id = None
+    sender_device_id_param = data.get("sender_device_id")
+    if sender_device_id_param is not None:
+        sender_device = db.session.get(Device, int(sender_device_id_param))
+        if sender_device is not None and sender_device.user_id == user.id:
+            sender_device_id = sender_device.id
+
     transfer = Transfer(
         sender_id=user.id,
+        sender_device_id=sender_device_id,
         receiver_id=receiver_id,
         receiver_device_id=receiver_device_id,
         mode=mode,
@@ -77,6 +86,16 @@ def create_transfer():
     )
     db.session.add(transfer)
     db.session.commit()
+
+    # For same-account transfers with a known receiver, push a real-time
+    # notification to the receiver via WebSocket (no-op if offline).
+    if mode == "same_account" and receiver_id is not None:
+        try:
+            from app.ws.events import notify_transfer_request
+            notify_transfer_request(transfer)
+        except Exception:
+            # Non-critical: REST response must not fail if WS emit errors.
+            pass
 
     return jsonify(transfer.to_dict()), 201
 

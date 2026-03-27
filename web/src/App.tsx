@@ -4,6 +4,8 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { PickupPage } from './pages/PickupPage';
 import { MyFilesPage } from './pages/MyFilesPage';
+import { DevicesPage } from './pages/DevicesPage';
+import { TransferPage } from './pages/TransferPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminFilesPage } from './pages/admin/AdminFilesPage';
@@ -24,6 +26,22 @@ function App() {
         element={
           <ProtectedRoute>
             <MyFilesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/devices"
+        element={
+          <ProtectedRoute>
+            <DevicesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/transfer"
+        element={
+          <ProtectedRoute>
+            <TransferPage />
           </ProtectedRoute>
         }
       />

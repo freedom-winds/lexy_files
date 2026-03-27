@@ -16,6 +16,8 @@ REDIS_JWT_BLACKLIST_PREFIX = "jwt_blacklist:"
 REDIS_RATE_LIMIT_PREFIX = "rate_limit:"
 REDIS_USER_ONLINE_PREFIX = "user_online:"
 REDIS_DEVICE_ONLINE_PREFIX = "device_online:"
+# WebSocket – maps socket SID → device DB id (used for presence cleanup)
+REDIS_WS_SID_PREFIX = "ws_sid:"
 
 # Token type identifiers stored in JWT 'type' claim
 TOKEN_TYPE_ACCESS = "access"

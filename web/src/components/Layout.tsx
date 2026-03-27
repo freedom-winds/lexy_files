@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { Files, LogOut, User, LayoutDashboard, Menu, X } from 'lucide-react';
+import { Files, LogOut, User, LayoutDashboard, Menu, X, Monitor, ArrowRightLeft } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import clsx from 'clsx';
@@ -47,9 +47,17 @@ export function Layout({ children }: LayoutProps) {
                 Home
               </NavLink>
               {isAuthenticated && (
-                <NavLink to="/my-files" className={navLinkClass}>
-                  My Files
-                </NavLink>
+                <>
+                  <NavLink to="/my-files" className={navLinkClass}>
+                    My Files
+                  </NavLink>
+                  <NavLink to="/devices" className={navLinkClass}>
+                    Devices
+                  </NavLink>
+                  <NavLink to="/transfer" className={navLinkClass}>
+                    Transfer
+                  </NavLink>
+                </>
               )}
               {user?.user_group === 'admin' && (
                 <NavLink to="/admin" className={navLinkClass}>
@@ -119,15 +127,35 @@ export function Layout({ children }: LayoutProps) {
               Home
             </NavLink>
             {isAuthenticated && (
-              <NavLink
-                to="/my-files"
-                className={({ isActive }) =>
-                  clsx('block px-3 py-2 rounded-md text-sm font-medium transition-colors', isActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900')
-                }
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                My Files
-              </NavLink>
+              <>
+                <NavLink
+                  to="/my-files"
+                  className={({ isActive }) =>
+                    clsx('block px-3 py-2 rounded-md text-sm font-medium transition-colors', isActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900')
+                  }
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Files
+                </NavLink>
+                <NavLink
+                  to="/devices"
+                  className={({ isActive }) =>
+                    clsx('block px-3 py-2 rounded-md text-sm font-medium transition-colors', isActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900')
+                  }
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Devices
+                </NavLink>
+                <NavLink
+                  to="/transfer"
+                  className={({ isActive }) =>
+                    clsx('block px-3 py-2 rounded-md text-sm font-medium transition-colors', isActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900')
+                  }
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Transfer
+                </NavLink>
+              </>
             )}
             {user?.user_group === 'admin' && (
               <NavLink

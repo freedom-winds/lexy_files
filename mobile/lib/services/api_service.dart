@@ -70,7 +70,12 @@ class ApiService {
     return token != null;
   }
 
-  // Auth
+  Future<String?> getAccessToken() async {
+    return _prefs.getString('access_token');
+  }
+
+  // ─── Auth ────────────────────────────────────────────────────────────────
+
   Future<Response> login(String username, String password) {
     return _dio.post(ApiConfig.authLogin, data: {
       'username': username,
@@ -94,7 +99,8 @@ class ApiService {
     return _dio.post(ApiConfig.authLogout);
   }
 
-  // Files
+  // ─── Files ───────────────────────────────────────────────────────────────
+
   Future<Response> uploadFile(
     String filePath,
     String fileName, {
@@ -137,6 +143,82 @@ class ApiService {
   Future<Response> deleteFile(int fileId) {
     return _dio.delete(ApiConfig.fileDelete(fileId));
   }
+
+  // ─── Devices ─────────────────────────────────────────────────────────────
+
+  /// Fetch all devices belonging to the authenticated user.
+  Future<Response> getDevices() {
+    return _dio.get(ApiConfig.devices);
+  }
+
+  /// Register a new device. [name], [deviceType] (e.g. "phone"), [platform]
+  /// (e.g. "android", "ios", "windows").
+  Future<Response> registerDevice({
+    required String name,
+    required String deviceType,
+    required String platform,
+    required String deviceId,
+  }) {
+    return _dio.post(ApiConfig.devices, data: {
+      'name': name,
+      'device_type': deviceType,
+      'platform': platform,
+      'device_id': deviceId,
+    });
+  }
+
+  /// Delete a device by ID.
+  Future<Response> deleteDevice(int deviceId) {
+    return _dio.delete(ApiConfig.deviceDelete(deviceId));
+  }
+
+  /// Mark this device as online by sending a heartbeat (PATCH or POST).
+  Future<Response> markDeviceOnline(int deviceId) {
+    return _dio.patch(
+      ApiConfig.deviceById(deviceId),
+      data: {'is_online': true},
+    );
+  }
+
+  // ─── Transfers ───────────────────────────────────────────────────────────
+
+  /// Create a transfer request from this device to [targetDeviceId].
+  Future<Response> createTransfer({
+    required int senderDeviceId,
+    required int targetDeviceId,
+    required String fileName,
+    required int fileSize,
+    String mode = 'same_account',
+  }) {
+    return _dio.post(ApiConfig.transfers, data: {
+      'mode': mode,
+      'sender_device_id': senderDeviceId,
+      'target_device_id': targetDeviceId,
+      'file_name': fileName,
+      'file_size': fileSize,
+    });
+  }
+
+  /// Get transfer status by ID.
+  Future<Response> getTransfer(int transferId) {
+    return _dio.get(ApiConfig.transferStatus(transferId));
+  }
+
+  // ─── SharedPreferences helpers ───────────────────────────────────────────
+
+  Future<void> setDeviceId(int id) async {
+    await _prefs.setInt('device_id', id);
+  }
+
+  Future<int?> getDeviceId() async {
+    return _prefs.getInt('device_id');
+  }
+
+  Future<void> clearDeviceId() async {
+    await _prefs.remove('device_id');
+  }
+
+  // ─── Error helper ────────────────────────────────────────────────────────
 
   String getApiError(dynamic error) {
     if (error is DioException) {

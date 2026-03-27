@@ -1,42 +1,28 @@
 # Current Focus
 
-_Last updated: 2026-03-20_
+_Last updated: 2026-03-21_
 
 ## Active objective
-Phase 4 + Phase 5 COMPLETE. All core phases delivered.
+All transfer modes complete and verified. Ready for next phase (integration testing, UI polish, or desktop packaging).
 
 ## What's done
-- Phase 0: Project brief, architecture decisions, API contracts, roadmap — COMPLETE
-- Phase 1: Flask backend — COMPLETE (81 tests passing, including 15 integration tests)
-- Phase 2: Web frontend — COMPLETE (all pages, admin console, build verified)
-- Phase 3: Flutter clients — COMPLETE (Android/iOS/Windows, analyze clean, 1 test passing)
-- Phase 4: Cross-platform verification — COMPLETE
-  - Android internet permission added
-  - Backend integration test (full API flow: register → login → upload → pickup → download → delete)
-  - 81 tests all passing
-  - Flutter analyze: 0 issues
-  - Windows desktop build: SUCCESS (lexy_files.exe)
-  - Android APK build: BLOCKED by network (dl.google.com inaccessible from China — code is correct)
-- Phase 5: Documentation — COMPLETE
-  - README.md (comprehensive)
-  - docs/setup.md (bootstrap guide)
-  - docs/deployment.md (production deployment)
-  - docs/release-checklist.md
+- Phases 0-5: All complete (backend, web, Flutter, tests, docs)
+- WebSocket relay: Backend relay + web client + Flutter client all wired up
+- LAN transfer: UDP discovery + TCP send/receive — bidirectional, Flutter-only
+- Bluetooth transfer: BLE scan + send (central) AND receive (peripheral/GATT server) — bidirectional, Flutter-only
+- Device management: Web (DevicesPage) + Flutter (DevicesScreen) — register, delete, online status
+- Web platform: relay-only (browsers can't do raw TCP/BLE — documented limitation)
 
-## Remaining work (deferred features)
-- Same-account device relay (WebSocket streaming) — API defined, not wired
-- LAN peer-to-peer transfer — not implemented
-- Bluetooth transfer — not implemented
-- Device registration UI — not built
-- iOS build verification — requires macOS
+## Known gaps
+- Android APK build blocked by network (dl.google.com inaccessible from China)
+- iOS build requires macOS + Xcode
+- No end-to-end cross-device integration test yet
+- Desktop packaging not done
 
-## Key technical notes
-- Python venv at `backend/venv/` (Python 3.11)
-- Backend tests: `cd backend && source venv/Scripts/activate && python -m pytest tests/ -v`
-- Web build: `cd web && npm run build`
-- Flutter analyze: `cd mobile && flutter analyze`
-- Flutter Windows build: `cd mobile && flutter build windows --debug`
-- Android APK needs VPN/proxy for Google Maven repos in China
+## Verification
+- Backend: 81/81 tests passing
+- Flutter: `flutter analyze` — 0 issues
+- Web: `tsc --noEmit` clean, `vite build` 379KB JS
 
 ## Blocking issues
-None — all deliverable phases complete.
+None.
