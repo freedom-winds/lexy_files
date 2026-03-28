@@ -6,12 +6,12 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from flask import current_app
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
 from app.models.file import File
 from app.services.quota_service import QuotaService
+from app.storage import get_storage
 from app.utils.constants import DOWNLOAD_CHUNK_SIZE, MAX_PICKUP_CODE_ATTEMPTS, REDEMPTION_GRACE_DAYS
 from app.utils.errors import FileExpiredError, NotFoundError, ValidationError
 from app.utils.helpers import generate_pickup_code, normalize_pickup_code, utcnow
@@ -22,7 +22,9 @@ class FileService:
 
     @staticmethod
     def save_uploaded_file(file_storage, user) -> File:
-        """Persist an uploaded file to disk and create the corresponding DB record.
+        """Persist an uploaded file and create the corresponding DB record.
+
+        Works with any configured storage backend (local filesystem or S3).
 
         Args:
             file_storage: A Werkzeug ``FileStorage`` object (from ``request.files``).
@@ -36,22 +38,16 @@ class FileService:
         """
         original_filename = secure_filename(file_storage.filename or "upload")
 
-        # Generate a UUID-based name to avoid filesystem conflicts.
+        # Generate a UUID-based name to avoid storage collisions.
         extension = os.path.splitext(original_filename)[1]
         stored_filename = f"{uuid.uuid4().hex}{extension}"
 
         # Determine MIME type from the original filename.
         mime_type, _ = mimetypes.guess_type(original_filename)
 
-        # Build per-user upload directory and ensure it exists.
-        upload_folder = current_app.config.get("UPLOAD_FOLDER", "./uploads")
-        user_dir = os.path.join(upload_folder, str(user.id))
-        os.makedirs(user_dir, exist_ok=True)
-
-        storage_path = os.path.join(user_dir, stored_filename)
-        file_storage.save(storage_path)
-
-        file_size = os.path.getsize(storage_path)
+        # Delegate to the configured storage backend.
+        storage = get_storage()
+        storage_key, file_size = storage.save(file_storage, user.id, stored_filename)
 
         # Generate a unique pickup code, retrying on collision.
         pickup_code = FileService._generate_unique_pickup_code()
@@ -71,7 +67,7 @@ class FileService:
             pickup_code=pickup_code,
             download_count=0,
             status="active",
-            storage_path=storage_path,
+            storage_path=storage_key,
             expires_at=expires_at,
         )
         db.session.add(file_record)
@@ -118,27 +114,23 @@ class FileService:
         speed_limit = QuotaService.get_download_speed_limit(user)
         total_sent = 0
 
-        with open(file_record.storage_path, "rb") as fh:
-            while True:
-                chunk = fh.read(DOWNLOAD_CHUNK_SIZE)
-                if not chunk:
-                    break
+        storage = get_storage()
+        for chunk in storage.stream(file_record.storage_path, chunk_size=DOWNLOAD_CHUNK_SIZE):
+            chunk_start = time.monotonic()
+            yield chunk
+            chunk_size = len(chunk)
+            total_sent += chunk_size
 
-                chunk_start = time.monotonic()
-                yield chunk
-                chunk_size = len(chunk)
-                total_sent += chunk_size
+            # Track traffic usage.
+            QuotaService.track_download(user, chunk_size)
 
-                # Track traffic usage.
-                QuotaService.track_download(user, chunk_size)
-
-                # Throttle if a speed limit is configured.
-                if speed_limit > 0:
-                    elapsed = time.monotonic() - chunk_start
-                    expected = chunk_size / speed_limit
-                    delay = expected - elapsed
-                    if delay > 0:
-                        time.sleep(delay)
+            # Throttle if a speed limit is configured.
+            if speed_limit > 0:
+                elapsed = time.monotonic() - chunk_start
+                expected = chunk_size / speed_limit
+                delay = expected - elapsed
+                if delay > 0:
+                    time.sleep(delay)
 
         # Increment download counter after the entire file has been streamed.
         file_record.download_count += 1
@@ -155,12 +147,9 @@ class FileService:
 
     @staticmethod
     def delete_file(file_record: File) -> None:
-        """Physically remove the file from disk and mark its DB record as deleted."""
-        try:
-            os.remove(file_record.storage_path)
-        except FileNotFoundError:
-            # File already gone from disk; proceed with DB update.
-            pass
+        """Remove the file from storage and mark its DB record as deleted."""
+        storage = get_storage()
+        storage.delete(file_record.storage_path)
 
         file_record.status = "deleted"
         file_record.deleted_at = utcnow()

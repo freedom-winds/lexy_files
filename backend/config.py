@@ -52,8 +52,22 @@ class Config:
     REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
     # ── File storage ──────────────────────────────────────────────────────────
+    # Set STORAGE_BACKEND to "s3" to use Amazon S3 (or any S3-compatible service).
+    # Leave as "local" (default) to use the local filesystem.
+    STORAGE_BACKEND: str = os.environ.get("STORAGE_BACKEND", "local")
+
+    # Local storage settings (used when STORAGE_BACKEND=local)
     UPLOAD_FOLDER: str = os.environ.get("UPLOAD_FOLDER", "./uploads")
     MAX_CONTENT_LENGTH: int = int(os.environ.get("MAX_CONTENT_LENGTH", str(5 * 1024 ** 3)))  # 5 GB
+
+    # S3 / S3-compatible storage settings (used when STORAGE_BACKEND=s3)
+    AWS_ACCESS_KEY_ID: str | None = os.environ.get("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY: str | None = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    AWS_REGION: str = os.environ.get("AWS_REGION", "us-east-1")
+    AWS_S3_BUCKET: str = os.environ.get("AWS_S3_BUCKET", "")
+    AWS_S3_PREFIX: str = os.environ.get("AWS_S3_PREFIX", "uploads")
+    # Optional: set for S3-compatible services (MinIO, R2, Backblaze B2, etc.)
+    AWS_S3_ENDPOINT_URL: str | None = os.environ.get("AWS_S3_ENDPOINT_URL")
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     CORS_ORIGINS: list = os.environ.get("CORS_ORIGINS", "*").split(",")
