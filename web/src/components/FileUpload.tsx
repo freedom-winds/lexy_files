@@ -6,9 +6,9 @@ import api from '../lib/api';
 import { formatFileSize, getApiError } from '../lib/utils';
 
 interface UploadResult {
+  id: number;
   pickup_code: string;
-  file_id: number;
-  filename: string;
+  original_filename: string;
   file_size: number;
 }
 
@@ -111,7 +111,7 @@ export function FileUpload() {
           <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-medium text-green-800">Upload successful!</p>
-            <p className="text-xs text-green-600 truncate">{result.filename} &middot; {formatFileSize(result.file_size)}</p>
+            <p className="text-xs text-green-600 truncate">{result.original_filename} &middot; {formatFileSize(result.file_size)}</p>
           </div>
         </div>
 
@@ -135,7 +135,7 @@ export function FileUpload() {
         </div>
 
         <a
-          href={`/api/v1/files/download/${result.file_id}`}
+          href={`/api/v1/files/download/${result.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition-colors"

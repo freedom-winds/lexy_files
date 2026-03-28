@@ -376,6 +376,21 @@ def stats():
     }
     """
     total_users = db.session.query(db.func.count(User.id)).scalar() or 0
+
+    active_users = (
+        db.session.query(db.func.count(User.id))
+        .filter(User.is_banned == False, User.is_anonymous == False)  # noqa: E712
+        .scalar()
+        or 0
+    )
+
+    anonymous_users = (
+        db.session.query(db.func.count(User.id))
+        .filter(User.is_anonymous == True)  # noqa: E712
+        .scalar()
+        or 0
+    )
+
     total_files = db.session.query(db.func.count(File.id)).scalar() or 0
 
     total_storage_bytes = (
@@ -406,6 +421,12 @@ def stats():
         or 0
     )
 
+    total_downloads = (
+        db.session.query(db.func.sum(File.download_count))
+        .scalar()
+        or 0
+    )
+
     total_transfers = (
         db.session.query(db.func.count(Transfer.id)).scalar() or 0
     )
@@ -413,11 +434,14 @@ def stats():
     return jsonify(
         {
             "total_users": total_users,
+            "active_users": active_users,
+            "anonymous_users": anonymous_users,
             "total_files": total_files,
             "total_storage_bytes": total_storage_bytes,
             "active_files": active_files,
             "expired_files": expired_files,
             "files_in_redemption": files_in_redemption,
+            "total_downloads": total_downloads,
             "total_transfers": total_transfers,
         }
     ), 200

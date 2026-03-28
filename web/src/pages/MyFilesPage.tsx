@@ -11,10 +11,14 @@ interface UserFile {
   mime_type: string;
   pickup_code: string;
   download_count: number;
-  max_downloads: number | null;
+  status: string;
   expires_at: string;
   created_at: string;
-  is_expired: boolean;
+}
+
+interface PaginatedResponse<T> {
+  data: T[];
+  pagination: { page: number; per_page: number; total: number; pages: number };
 }
 
 export function MyFilesPage() {
@@ -26,8 +30,8 @@ export function MyFilesPage() {
 
   const fetchFiles = useCallback(async () => {
     try {
-      const { data } = await api.get<UserFile[]>('/files');
-      setFiles(Array.isArray(data) ? data : []);
+      const { data } = await api.get<PaginatedResponse<UserFile>>('/files');
+      setFiles(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
       setError(getApiError(err));
     } finally {
@@ -124,7 +128,7 @@ export function MyFilesPage() {
               <div
                 key={file.id}
                 className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-colors ${
-                  file.is_expired ? 'border-slate-200 opacity-60' : 'border-slate-200'
+                  file.status !== 'active' ? 'border-slate-200 opacity-60' : 'border-slate-200'
                 }`}
               >
                 <div className="flex items-start gap-4 p-4 sm:p-5">
@@ -141,7 +145,7 @@ export function MyFilesPage() {
                           {formatFileSize(file.file_size)} &middot; Uploaded {formatDate(file.created_at)}
                         </p>
                       </div>
-                      {file.is_expired && (
+                      {file.status !== 'active' && (
                         <span className="shrink-0 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
                           Expired
                         </span>
@@ -172,13 +176,13 @@ export function MyFilesPage() {
                       {/* Expiry */}
                       <span className="inline-flex items-center gap-1 text-xs text-slate-500">
                         <Clock className="w-3 h-3" />
-                        {file.is_expired ? 'Expired' : `Expires ${formatRelativeDate(file.expires_at)}`}
+                        {file.status !== 'active' ? 'Expired' : `Expires ${formatRelativeDate(file.expires_at)}`}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
-                    {!file.is_expired && (
+                    {file.status === 'active' && (
                       <button
                         onClick={() => handleDownload(file)}
                         className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"

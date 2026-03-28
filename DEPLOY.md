@@ -227,7 +227,7 @@ Environment="PATH=/opt/lexy_files/backend/venv/bin:/usr/bin"
 ExecStart=/opt/lexy_files/backend/venv/bin/gunicorn \
     --worker-class eventlet \
     --workers 1 \
-    --bind 127.0.0.1:5000 \
+    --bind 127.0.0.1:7891 \
     --timeout 120 \
     --access-logfile /var/log/lexy_files/access.log \
     --error-logfile /var/log/lexy_files/error.log \
