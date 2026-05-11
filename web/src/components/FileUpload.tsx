@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import type { DragEvent, ChangeEvent } from 'react';
 import { Upload, CheckCircle, Copy, ExternalLink, X, FileIcon } from 'lucide-react';
 import clsx from 'clsx';
-import api from '../lib/api';
+import api, { apiUrl } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { formatFileSize, getApiError } from '../lib/utils';
 
 interface UploadResult {
@@ -13,6 +14,7 @@ interface UploadResult {
 }
 
 export function FileUpload() {
+  const { ensureAnonymousSession } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -67,6 +69,7 @@ export function FileUpload() {
     setProgress(0);
 
     try {
+      await ensureAnonymousSession();
       const form = new FormData();
       form.append('file', file);
 
@@ -135,7 +138,7 @@ export function FileUpload() {
         </div>
 
         <a
-          href={`/api/v1/files/download/${result.id}`}
+          href={apiUrl(`/files/download/${result.id}`)}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition-colors"

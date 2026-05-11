@@ -8,6 +8,18 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const ANON_DEVICE_ID_KEY = 'lexy_anon_device_id';
+const ANON_FINGERPRINT_KEY = 'lexy_anon_fingerprint';
+
+function getOrCreateClientId(key: string) {
+  let value = localStorage.getItem(key);
+  if (!value) {
+    value = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(key, value);
+  }
+  return value;
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +67,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(data.user);
   }, []);
 
+  const ensureAnonymousSession = useCallback(async () => {
+    if (localStorage.getItem('access_token')) return;
+    const { data } = await api.post<{
+      tokens: { access_token: string; refresh_token: string };
+      user: User;
+    }>('/auth/anonymous', {
+      device_id: getOrCreateClientId(ANON_DEVICE_ID_KEY),
+      fingerprint: getOrCreateClientId(ANON_FINGERPRINT_KEY),
+    });
+    localStorage.setItem('access_token', data.tokens.access_token);
+    localStorage.setItem('refresh_token', data.tokens.refresh_token);
+    setUser(data.user);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout');
@@ -77,6 +103,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         register,
         logout,
         refreshUser,
+        ensureAnonymousSession,
       }}
     >
       {children}

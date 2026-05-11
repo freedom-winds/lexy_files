@@ -24,7 +24,7 @@ class Device {
       deviceType: json['device_type'] as String? ?? json['type'] as String? ?? 'unknown',
       platform: json['platform'] as String? ?? 'unknown',
       isOnline: json['is_online'] as bool? ?? false,
-      lastSeen: json['last_seen'] as String?,
+      lastSeen: json['last_seen_at'] as String? ?? json['last_seen'] as String?,
       createdAt: json['created_at'] as String? ?? '',
     );
   }

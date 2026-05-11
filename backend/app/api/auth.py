@@ -13,7 +13,7 @@ from flask_jwt_extended import (
 from app.extensions import db
 from app.models.user import User
 from app.services.auth_service import AuthService
-from app.utils.errors import AuthenticationError, NotFoundError, ValidationError
+from app.utils.errors import NotFoundError, ValidationError
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -80,10 +80,6 @@ def refresh():
     if user is None:
         raise NotFoundError("User not found.")
 
-    from flask import current_app
-    expires: timedelta = current_app.config.get(
-        "JWT_ACCESS_TOKEN_EXPIRES", timedelta(minutes=15)
-    )
     access_token = create_access_token(
         identity=str(user.id),
         additional_claims={"user_group": user.user_group},

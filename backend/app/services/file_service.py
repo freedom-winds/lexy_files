@@ -4,7 +4,7 @@ import mimetypes
 import os
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from werkzeug.utils import secure_filename
 

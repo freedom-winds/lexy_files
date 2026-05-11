@@ -217,8 +217,6 @@ def admin_download_file(file_id: int):
 
     from flask import Response, stream_with_context
 
-    from app.services.quota_service import QuotaService
-
     identity = get_jwt_identity()
     admin_user = db.session.get(User, int(identity))
 

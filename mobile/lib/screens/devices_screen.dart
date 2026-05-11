@@ -81,16 +81,18 @@ class _DevicesScreenState extends State<DevicesScreen> {
     final api = context.read<ApiService>();
     try {
       final deviceId = const Uuid().v4();
-      await api.registerDevice(
+      final response = await api.registerDevice(
         name: nameCtrl.text.trim(),
         deviceType: 'phone',
         platform: _getPlatform(),
         deviceId: deviceId,
       );
+      final created = response.data as Map<String, dynamic>;
 
       // Store device ID locally
       final prefs = SharedPreferencesAsync();
       await prefs.setString('device_id', deviceId);
+      await prefs.setInt('device_db_id', created['id'] as int);
 
       await _fetchDevices();
     } catch (e) {
@@ -251,7 +253,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
   IconData _getDeviceIcon(String type) {
     switch (type.toLowerCase()) {
       case 'phone':
-      case 'mobile':
         return Icons.smartphone;
       case 'tablet':
         return Icons.tablet;

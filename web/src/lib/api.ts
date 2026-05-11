@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/$/, '');
+export const SOCKET_URL = (import.meta.env.VITE_SOCKET_URL ?? window.location.origin).replace(/\/$/, '');
+
+export function apiUrl(path: string): string {
+  return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -21,7 +28,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) throw new Error('No refresh token');
-        const { data } = await axios.post('/api/v1/auth/refresh', {}, {
+        const { data } = await axios.post(apiUrl('/auth/refresh'), {}, {
           headers: { Authorization: `Bearer ${refreshToken}` },
         });
         localStorage.setItem('access_token', data.access_token);

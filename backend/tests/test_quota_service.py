@@ -1,7 +1,6 @@
 """Unit tests for QuotaService."""
 
 import pytest
-from datetime import date
 
 from app.extensions import db
 from app.models.file import File

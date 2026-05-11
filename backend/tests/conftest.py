@@ -1,15 +1,11 @@
 """Shared test fixtures for the Lexy Files backend test suite."""
 
-import os
 import tempfile
 
-import fakeredis
 import pytest
 
 from app.extensions import db as _db
 from app.models.user import User
-from app.models.file import File
-from app.models.quota import GroupQuota, TrafficUsage
 
 
 # ---------------------------------------------------------------------------

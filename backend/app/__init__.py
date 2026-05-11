@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 
 from flask import Flask
 
@@ -15,7 +16,12 @@ from config import get_config
 def create_app(config_name: str | None = None) -> Flask:
     """Create and configure the Flask application."""
     app = Flask(__name__)
-    app.config.from_object(get_config(config_name))
+    config_class = get_config(config_name)
+    validate_config = getattr(config_class, "validate", None)
+    if validate_config is not None:
+        validate_config()
+    app.config.from_object(config_class)
+    _validate_storage_config(app)
 
     # Ensure upload folder exists
     upload_folder = app.config.get("UPLOAD_FOLDER", "./uploads")
@@ -26,7 +32,11 @@ def create_app(config_name: str | None = None) -> Flask:
     migrate.init_app(app, db)
     jwt.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": app.config.get("CORS_ORIGINS", "*")}})
-    socketio.init_app(app, cors_allowed_origins="*", async_mode="eventlet")
+    socketio.init_app(
+        app,
+        cors_allowed_origins=app.config.get("SOCKETIO_CORS_ORIGINS", app.config.get("CORS_ORIGINS", "*")),
+        async_mode="eventlet",
+    )
 
     # Register blueprints
     register_blueprints(app)
@@ -60,10 +70,42 @@ def create_app(config_name: str | None = None) -> Flask:
         _seed_default_quotas(app)
 
         # Start cleanup scheduler
-        if app.config.get("SCHEDULER_ENABLED", False):
+        if _should_start_scheduler(app):
             _start_scheduler(app)
 
     return app
+
+
+def _should_start_scheduler(app: Flask) -> bool:
+    """Return True when the cleanup scheduler should run in this process."""
+    if not app.config.get("SCHEDULER_ENABLED", False):
+        return False
+    if app.testing:
+        return False
+    if os.environ.get("FLASK_SKIP_SCHEDULER", "").lower() in {"1", "true", "yes"}:
+        return False
+    # Flask-Migrate imports the app for `flask db ...`; those commands should
+    # not start background jobs.
+    if "db" in sys.argv[1:3]:
+        return False
+    return True
+
+
+def _validate_storage_config(app: Flask) -> None:
+    """Fail fast when the selected storage backend is missing required settings."""
+    if app.config.get("STORAGE_BACKEND", "local").lower() != "s3":
+        return
+
+    required = [
+        "AWS_S3_BUCKET",
+        "AWS_REGION",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+    ]
+    missing = [name for name in required if not app.config.get(name)]
+    if missing:
+        joined = ", ".join(missing)
+        raise RuntimeError(f"{joined} must be set when STORAGE_BACKEND=s3.")
 
 
 def _seed_default_quotas(app: Flask) -> None:

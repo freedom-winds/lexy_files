@@ -37,6 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
             _usernameController.text.trim(),
             _passwordController.text,
           );
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
     } catch (_) {
       setState(() {
         _error = context.read<AuthProvider>().error;

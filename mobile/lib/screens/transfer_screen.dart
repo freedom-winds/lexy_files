@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import '../services/api_service.dart';
 import '../services/websocket_service.dart';
 import '../services/lan_service.dart';
@@ -65,6 +66,7 @@ class _TransferScreenState extends State<TransferScreen>
 // ── Same-Account Relay Tab ─────────────────────────────────────────────────
 
 const int _chunkSize = 128 * 1024; // 128 KB per chunk
+const Duration _acceptTimeout = Duration(seconds: 120);
 
 class _RelayTab extends StatefulWidget {
   const _RelayTab();
@@ -82,6 +84,7 @@ class _RelayTabState extends State<_RelayTab> {
   String? _sendTarget;
   String? _sendResult;
   bool _sendOk = false;
+  final Map<int, Completer<void>> _pendingAccepts = {};
 
   // WebSocket
   WebSocketService? _wsService;
@@ -112,15 +115,81 @@ class _RelayTabState extends State<_RelayTab> {
   }
 
   Future<void> _init() async {
-    await _loadDeviceId();
-    if (!mounted) return;
-    await _fetchDevices();
-    _connectWebSocket();
+    final api = context.read<ApiService>();
+    try {
+      await _loadDeviceId();
+      if (!mounted) return;
+      await _ensureDeviceRegistered();
+      if (!mounted) return;
+      await _fetchDevices();
+      _connectWebSocket();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = api.getApiError(e);
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _loadDeviceId() async {
     final prefs = SharedPreferencesAsync();
     _myDeviceId = await prefs.getString('device_id');
+    _myDeviceDbId = await prefs.getInt('device_db_id');
+  }
+
+  String _currentPlatform() {
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
+    if (Platform.isWindows) return 'windows';
+    if (Platform.isMacOS) return 'macos';
+    if (Platform.isLinux) return 'linux';
+    return 'linux';
+  }
+
+  String _currentDeviceType() {
+    if (Platform.isAndroid || Platform.isIOS) return 'phone';
+    return 'desktop';
+  }
+
+  String _currentDeviceName() {
+    if (Platform.isAndroid) return 'Android Device';
+    if (Platform.isIOS) return 'iOS Device';
+    if (Platform.isWindows) return 'Windows Desktop';
+    if (Platform.isMacOS) return 'macOS Desktop';
+    if (Platform.isLinux) return 'Linux Desktop';
+    return 'Lexy Device';
+  }
+
+  Future<void> _ensureDeviceRegistered() async {
+    final api = context.read<ApiService>();
+    final prefs = SharedPreferencesAsync();
+    _myDeviceId ??= const Uuid().v4();
+    await prefs.setString('device_id', _myDeviceId!);
+
+    final resp = await api.getDevices();
+    final data = (resp.data as List).cast<Map<String, dynamic>>();
+    Map<String, dynamic>? existing;
+    for (final d in data) {
+      if (d['device_id'] == _myDeviceId) {
+        existing = d;
+        break;
+      }
+    }
+
+    if (existing == null) {
+      final created = await api.registerDevice(
+        name: _currentDeviceName(),
+        deviceType: _currentDeviceType(),
+        platform: _currentPlatform(),
+        deviceId: _myDeviceId!,
+      );
+      existing = created.data as Map<String, dynamic>;
+    }
+
+    _myDeviceDbId = existing['id'] as int;
+    await prefs.setInt('device_db_id', _myDeviceDbId!);
+    await api.markDeviceOnline(_myDeviceDbId!);
   }
 
   Future<void> _fetchDevices() async {
@@ -140,6 +209,9 @@ class _RelayTabState extends State<_RelayTab> {
             break;
           }
         }
+      }
+      if (_myDeviceDbId != null) {
+        await api.markDeviceOnline(_myDeviceDbId!);
       }
       setState(() {
         // Show only OTHER devices (not ourselves)
@@ -196,11 +268,20 @@ class _RelayTabState extends State<_RelayTab> {
   }
 
   void _onTransferAccepted(int transferId) {
+    final pending = _pendingAccepts.remove(transferId);
+    if (pending != null && !pending.isCompleted) {
+      pending.complete();
+      return;
+    }
     // Our outgoing transfer was accepted — data streaming starts.
     // Nothing to do here; the send loop already started after creating the transfer.
   }
 
   void _onTransferRejected(int transferId) {
+    final pending = _pendingAccepts.remove(transferId);
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError('Transfer was rejected by the receiver.');
+    }
     if (!mounted) return;
     setState(() {
       _sending = false;
@@ -308,6 +389,7 @@ class _RelayTabState extends State<_RelayTab> {
       _sendResult = null;
     });
 
+    int? activeTransferId;
     try {
       // 1. Create transfer via REST
       final resp = await api.createTransfer(
@@ -319,26 +401,34 @@ class _RelayTabState extends State<_RelayTab> {
       );
       final transferData = resp.data as Map<String, dynamic>;
       final transferId = transferData['id'] as int;
+      activeTransferId = transferId;
 
-      // 2. Read the file
-      final fileBytes = await File(file.path!).readAsBytes();
+      // 2. Wait for the receiver to explicitly accept.
+      final accepted = Completer<void>();
+      _pendingAccepts[transferId] = accepted;
+      await accepted.future.timeout(_acceptTimeout);
+      _pendingAccepts.remove(transferId);
 
-      // 3. Stream chunks via WebSocket
-      final totalChunks = (fileBytes.length / _chunkSize).ceil();
-      for (int i = 0; i < totalChunks; i++) {
-        final start = i * _chunkSize;
-        final end = (start + _chunkSize).clamp(0, fileBytes.length);
-        final chunk = fileBytes.sublist(start, end);
+      // 3. Stream chunks via WebSocket without loading the whole file.
+      var sent = 0;
+      await for (final chunk in File(file.path!).openRead(0, file.size)) {
+        var offset = 0;
+        while (offset < chunk.length) {
+          final end = (offset + _chunkSize).clamp(0, chunk.length);
+          final bytes = Uint8List.fromList(chunk.sublist(offset, end));
+          offset = end;
+          sent += bytes.length;
 
-        _wsService!.sendChunk(transferId, chunk);
+          _wsService!.sendChunk(transferId, bytes);
 
-        final pct = ((i + 1) / totalChunks * 100).round().toDouble();
-        if (mounted) {
-          setState(() => _sendProgress = pct);
-        }
+          final pct =
+              file.size > 0
+                  ? (sent / file.size * 100).clamp(0, 100).toDouble()
+                  : 100.0;
+          if (mounted) {
+            setState(() => _sendProgress = pct);
+          }
 
-        // Yield every 4 chunks to keep UI responsive
-        if (i % 4 == 0) {
           await Future.delayed(Duration.zero);
         }
       }
@@ -355,10 +445,17 @@ class _RelayTabState extends State<_RelayTab> {
         });
       }
     } catch (e) {
+      if (activeTransferId != null) {
+        _pendingAccepts.remove(activeTransferId);
+      }
       if (mounted) {
         setState(() {
           _sending = false;
-          _sendResult = api.getApiError(e);
+          _sendResult = e is TimeoutException
+              ? 'Timed out waiting for the receiver to accept.'
+              : e is String
+                  ? e
+                  : api.getApiError(e);
           _sendOk = false;
         });
       }
@@ -387,6 +484,12 @@ class _RelayTabState extends State<_RelayTab> {
   @override
   void dispose() {
     _heartbeatTimer?.cancel();
+    for (final pending in _pendingAccepts.values) {
+      if (!pending.isCompleted) {
+        pending.completeError('Transfer screen closed.');
+      }
+    }
+    _pendingAccepts.clear();
     _wsService?.dispose();
     super.dispose();
   }
@@ -436,8 +539,8 @@ class _RelayTabState extends State<_RelayTab> {
                   Text(
                     _wsConnected
                         ? 'Connected to relay server'
-                        : _myDeviceId == null
-                            ? 'No device registered — register on Devices page first'
+                        : _myDeviceId == null && !_loading
+                            ? 'Registering this device...'
                             : 'Connecting to relay server...',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
@@ -732,11 +835,11 @@ class _LanTabState extends State<_LanTab> {
     });
 
     try {
-      final bytes = await File(file.path!).readAsBytes();
-      await _lanService.sendFile(
+      await _lanService.sendFileFromPath(
         target: device,
+        filePath: file.path!,
         fileName: file.name,
-        fileData: bytes,
+        fileSize: file.size,
         onProgress: (sent, total) {
           if (mounted) {
             setState(() {
@@ -974,11 +1077,11 @@ class _BluetoothTabState extends State<_BluetoothTab> {
     });
 
     try {
-      final bytes = await File(file.path!).readAsBytes();
-      final error = await _bleService.sendFile(
+      final error = await _bleService.sendFileFromPath(
         device: device.device,
+        filePath: file.path!,
         fileName: file.name,
-        fileData: bytes,
+        fileSize: file.size,
         onProgress: (sent, total) {
           if (mounted) {
             setState(() {

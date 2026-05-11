@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-import io
+import os
+import tempfile
 from typing import Generator
 
 from app.storage.base import StorageBackend
+from app.utils.constants import DOWNLOAD_CHUNK_SIZE
 
 
 class S3Storage(StorageBackend):
@@ -15,15 +17,8 @@ class S3Storage(StorageBackend):
 
         <prefix>/<user_id>/<stored_filename>
 
-    e.g. ``uploads/42/a1b2c3d4.pdf``
-
-    The storage key stored in ``File.storage_path`` is this object key.
-    The bucket name is NOT embedded in the key — it is held by this class.
-
-    Compatible with any S3-compatible service (MinIO, Cloudflare R2,
-    Backblaze B2, DigitalOcean Spaces, etc.) by setting ``endpoint_url``.
-
-    Required pip dependency: ``boto3``
+    The storage key stored in ``File.storage_path`` is the object key. The
+    bucket name is held by this class.
     """
 
     def __init__(
@@ -35,16 +30,24 @@ class S3Storage(StorageBackend):
         endpoint_url: str | None = None,
         prefix: str = "uploads",
     ) -> None:
+        if not bucket:
+            raise RuntimeError("AWS_S3_BUCKET is required when STORAGE_BACKEND=s3.")
+        if not region:
+            raise RuntimeError("AWS_REGION is required when STORAGE_BACKEND=s3.")
+        if bool(access_key) != bool(secret_key):
+            raise RuntimeError(
+                "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be configured together."
+            )
+
         self._bucket = bucket
         self._prefix = prefix.rstrip("/")
 
-        # Import lazily so boto3 is only required when S3 is actually used.
         try:
             import boto3
+            from boto3.s3.transfer import TransferConfig
         except ImportError as exc:
             raise RuntimeError(
-                "boto3 is required for S3 storage. "
-                "Run: pip install boto3"
+                "boto3 is required for S3 storage. Run: pip install boto3"
             ) from exc
 
         session = boto3.session.Session()
@@ -56,6 +59,12 @@ class S3Storage(StorageBackend):
             kwargs["endpoint_url"] = endpoint_url
 
         self._client = session.client("s3", **kwargs)
+        self._transfer_config = TransferConfig(
+            multipart_threshold=8 * 1024 * 1024,
+            multipart_chunksize=8 * 1024 * 1024,
+            max_concurrency=4,
+            use_threads=True,
+        )
 
     def _object_key(self, user_id: int, stored_filename: str) -> str:
         return f"{self._prefix}/{user_id}/{stored_filename}"
@@ -64,20 +73,23 @@ class S3Storage(StorageBackend):
         key = self._object_key(user_id, stored_filename)
 
         if hasattr(source, "stream"):
-            # Werkzeug FileStorage — read into memory buffer then upload.
-            # For large files, consider switching to multipart upload.
-            data = source.stream.read()
+            stream = source.stream
+            content_type = getattr(source, "mimetype", None)
         elif hasattr(source, "read"):
-            data = source.read()
+            stream = source
+            content_type = None
         else:
             raise TypeError(f"Unsupported source type: {type(source)}")
 
-        file_size = len(data)
-        self._client.put_object(
-            Bucket=self._bucket,
-            Key=key,
-            Body=data,
-            ContentLength=file_size,
+        stream, file_size = self._prepare_stream(stream)
+
+        extra_args = {"ContentType": content_type} if content_type else None
+        self._client.upload_fileobj(
+            stream,
+            self._bucket,
+            key,
+            ExtraArgs=extra_args,
+            Config=self._transfer_config,
         )
         return key, file_size
 
@@ -96,3 +108,25 @@ class S3Storage(StorageBackend):
         except Exception:
             # Best-effort deletion; do not crash if the object is already gone.
             pass
+
+    @staticmethod
+    def _prepare_stream(stream):
+        """Return a seekable stream positioned at 0 and its size."""
+        try:
+            current = stream.tell()
+            stream.seek(0, os.SEEK_END)
+            size = stream.tell()
+            stream.seek(current)
+            stream.seek(0)
+            return stream, size
+        except (AttributeError, OSError):
+            spool = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b")
+            total = 0
+            while True:
+                chunk = stream.read(DOWNLOAD_CHUNK_SIZE)
+                if not chunk:
+                    break
+                spool.write(chunk)
+                total += len(chunk)
+            spool.seek(0)
+            return spool, total

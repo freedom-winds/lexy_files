@@ -44,7 +44,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from flask import current_app, request
+from flask import request
 from flask_jwt_extended import decode_token
 from flask_jwt_extended.exceptions import JWTDecodeError
 from flask_socketio import (
@@ -352,7 +352,13 @@ class TransferNamespace(Namespace):
             return
 
         if transfer.status not in ("pending", "accepted"):
-            emit("error", {"code": "TRANSFER_ERROR", "message": f"Transfer cannot be rejected from status '{transfer.status}'."})
+            emit(
+                "error",
+                {
+                    "code": "TRANSFER_ERROR",
+                    "message": f"Transfer cannot be rejected from status '{transfer.status}'.",
+                },
+            )
             return
 
         transfer.status = "rejected"
@@ -466,7 +472,13 @@ class TransferNamespace(Namespace):
             return
 
         if transfer.status not in ("accepted", "in_progress"):
-            emit("error", {"code": "TRANSFER_ERROR", "message": f"Transfer is not in a streamable state (status={transfer.status})."})
+            emit(
+                "error",
+                {
+                    "code": "TRANSFER_ERROR",
+                    "message": f"Transfer is not in a streamable state (status={transfer.status}).",
+                },
+            )
             return
 
         # Transition to in_progress on first chunk.
@@ -475,7 +487,12 @@ class TransferNamespace(Namespace):
 
         # Determine chunk size (bytes regardless of whether it arrived as
         # bytes or base64 string – we count what we relay).
-        chunk_bytes = len(chunk) if isinstance(chunk, (bytes, bytearray)) else len(chunk.encode("utf-8") if isinstance(chunk, str) else chunk)
+        if isinstance(chunk, (bytes, bytearray)):
+            chunk_bytes = len(chunk)
+        elif isinstance(chunk, str):
+            chunk_bytes = len(chunk.encode("utf-8"))
+        else:
+            chunk_bytes = len(chunk)
 
         # --- Quota check on receiver ---
         if transfer.receiver_id is not None:
@@ -487,18 +504,38 @@ class TransferNamespace(Namespace):
                     transfer.status = "failed"
                     db.session.commit()
                     _active_transfers.pop(transfer.id, None)
-                    payload = transfer.to_dict()
-                    emit("transfer.error", {"transfer_id": transfer.id, "code": "QUOTA_EXCEEDED", "message": "Receiver's download quota is exhausted."})
+                    emit(
+                        "transfer.error",
+                        {
+                            "transfer_id": transfer.id,
+                            "code": "QUOTA_EXCEEDED",
+                            "message": "Receiver's download quota is exhausted.",
+                        },
+                    )
                     socketio.emit(
                         "transfer.error",
-                        {"transfer_id": transfer.id, "code": "QUOTA_EXCEEDED", "message": "Your download quota is exhausted; transfer failed."},
-                        to=_device_room(transfer.receiver_device_id) if transfer.receiver_device_id else _user_room(transfer.receiver_id),
+                        {
+                            "transfer_id": transfer.id,
+                            "code": "QUOTA_EXCEEDED",
+                            "message": "Your download quota is exhausted; transfer failed.",
+                        },
+                        to=(
+                            _device_room(transfer.receiver_device_id)
+                            if transfer.receiver_device_id
+                            else _user_room(transfer.receiver_id)
+                        ),
                     )
                     log.warning("transfer %d failed: receiver quota exceeded", transfer.id)
                     return
 
         # --- Update progress tracking ---
-        state = _active_transfers.setdefault(transfer.id, {"bytes": transfer.bytes_transferred, "last_progress": transfer.bytes_transferred})
+        state = _active_transfers.setdefault(
+            transfer.id,
+            {
+                "bytes": transfer.bytes_transferred,
+                "last_progress": transfer.bytes_transferred,
+            },
+        )
         state["bytes"] += chunk_bytes
 
         transfer.bytes_transferred = state["bytes"]
@@ -511,7 +548,11 @@ class TransferNamespace(Namespace):
                 try:
                     QuotaService.track_download(receiver, chunk_bytes)
                 except Exception as exc:
-                    log.warning("Failed to track download quota for user %d: %s", transfer.receiver_id, exc)
+                    log.warning(
+                        "Failed to track download quota for user %d: %s",
+                        transfer.receiver_id,
+                        exc,
+                    )
 
         # --- Relay chunk to receiver ---
         relay_payload = {
@@ -521,7 +562,11 @@ class TransferNamespace(Namespace):
             "bytes_transferred": state["bytes"],
         }
         if transfer.receiver_device_id:
-            socketio.emit("transfer.data", relay_payload, to=_device_room(transfer.receiver_device_id))
+            socketio.emit(
+                "transfer.data",
+                relay_payload,
+                to=_device_room(transfer.receiver_device_id),
+            )
         elif transfer.receiver_id:
             socketio.emit("transfer.data", relay_payload, to=_user_room(transfer.receiver_id))
 
@@ -533,13 +578,21 @@ class TransferNamespace(Namespace):
                 "transfer_id": transfer.id,
                 "bytes_transferred": state["bytes"],
                 "file_size": transfer.file_size,
-                "progress_percent": round(state["bytes"] / transfer.file_size * 100, 2) if transfer.file_size > 0 else 0,
+                "progress_percent": (
+                    round(state["bytes"] / transfer.file_size * 100, 2)
+                    if transfer.file_size > 0
+                    else 0
+                ),
             }
             # Emit to sender.
             emit("transfer.progress", progress_payload)
             # Emit to receiver.
             if transfer.receiver_device_id:
-                socketio.emit("transfer.progress", progress_payload, to=_device_room(transfer.receiver_device_id))
+                socketio.emit(
+                    "transfer.progress",
+                    progress_payload,
+                    to=_device_room(transfer.receiver_device_id),
+                )
             elif transfer.receiver_id:
                 socketio.emit("transfer.progress", progress_payload, to=_user_room(transfer.receiver_id))
 
@@ -572,7 +625,13 @@ class TransferNamespace(Namespace):
             return
 
         if transfer.status not in ("accepted", "in_progress"):
-            emit("error", {"code": "TRANSFER_ERROR", "message": f"Transfer cannot be completed from status '{transfer.status}'."})
+            emit(
+                "error",
+                {
+                    "code": "TRANSFER_ERROR",
+                    "message": f"Transfer cannot be completed from status '{transfer.status}'.",
+                },
+            )
             return
 
         transfer.status = "completed"
@@ -588,11 +647,20 @@ class TransferNamespace(Namespace):
         # Notify both parties.
         emit("transfer.complete", complete_payload)
         if transfer.receiver_device_id:
-            socketio.emit("transfer.complete", complete_payload, to=_device_room(transfer.receiver_device_id))
+            socketio.emit(
+                "transfer.complete",
+                complete_payload,
+                to=_device_room(transfer.receiver_device_id),
+            )
         elif transfer.receiver_id:
             socketio.emit("transfer.complete", complete_payload, to=_user_room(transfer.receiver_id))
 
-        log.info("transfer %d completed by user %d, bytes=%d", transfer.id, user.id, transfer.bytes_transferred)
+        log.info(
+            "transfer %d completed by user %d, bytes=%d",
+            transfer.id,
+            user.id,
+            transfer.bytes_transferred,
+        )
 
     # ── WebRTC signaling ─────────────────────────────────────────────────────
 
@@ -612,7 +680,13 @@ class TransferNamespace(Namespace):
         sdp = data.get("sdp")
 
         if target_device_id is None or transfer_id is None or not sdp:
-            emit("error", {"code": "VALIDATION_ERROR", "message": "target_device_id, transfer_id, and sdp are required."})
+            emit(
+                "error",
+                {
+                    "code": "VALIDATION_ERROR",
+                    "message": "target_device_id, transfer_id, and sdp are required.",
+                },
+            )
             return
 
         socketio.emit(
@@ -637,7 +711,13 @@ class TransferNamespace(Namespace):
         sdp = data.get("sdp")
 
         if target_device_id is None or transfer_id is None or not sdp:
-            emit("error", {"code": "VALIDATION_ERROR", "message": "target_device_id, transfer_id, and sdp are required."})
+            emit(
+                "error",
+                {
+                    "code": "VALIDATION_ERROR",
+                    "message": "target_device_id, transfer_id, and sdp are required.",
+                },
+            )
             return
 
         socketio.emit(
@@ -662,7 +742,13 @@ class TransferNamespace(Namespace):
         candidate = data.get("candidate")
 
         if target_device_id is None or transfer_id is None or candidate is None:
-            emit("error", {"code": "VALIDATION_ERROR", "message": "target_device_id, transfer_id, and candidate are required."})
+            emit(
+                "error",
+                {
+                    "code": "VALIDATION_ERROR",
+                    "message": "target_device_id, transfer_id, and candidate are required.",
+                },
+            )
             return
 
         socketio.emit(

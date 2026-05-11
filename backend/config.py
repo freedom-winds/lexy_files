@@ -4,6 +4,7 @@ All values can be overridden via environment variables or a .env file.
 """
 
 import os
+import tempfile
 from datetime import timedelta
 
 from dotenv import load_dotenv
@@ -32,13 +33,16 @@ class Config:
     MYSQL_PASSWORD: str = os.environ.get("MYSQL_PASSWORD", "lexy_password")
     MYSQL_DATABASE: str = os.environ.get("MYSQL_DATABASE", "lexy_files")
 
-    SQLALCHEMY_DATABASE_URI: str = (
-        f"mysql+pymysql://{os.environ.get('MYSQL_USER', 'lexy')}"
-        f":{os.environ.get('MYSQL_PASSWORD', 'lexy_password')}"
-        f"@{os.environ.get('MYSQL_HOST', 'localhost')}"
-        f":{os.environ.get('MYSQL_PORT', '3306')}"
-        f"/{os.environ.get('MYSQL_DATABASE', 'lexy_files')}"
-        "?charset=utf8mb4"
+    SQLALCHEMY_DATABASE_URI: str = os.environ.get(
+        "SQLALCHEMY_DATABASE_URI",
+        (
+            f"mysql+pymysql://{os.environ.get('MYSQL_USER', 'lexy')}"
+            f":{os.environ.get('MYSQL_PASSWORD', 'lexy_password')}"
+            f"@{os.environ.get('MYSQL_HOST', 'localhost')}"
+            f":{os.environ.get('MYSQL_PORT', '3306')}"
+            f"/{os.environ.get('MYSQL_DATABASE', 'lexy_files')}"
+            "?charset=utf8mb4"
+        ),
     )
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
     SQLALCHEMY_ENGINE_OPTIONS: dict = {
@@ -70,7 +74,19 @@ class Config:
     AWS_S3_ENDPOINT_URL: str | None = os.environ.get("AWS_S3_ENDPOINT_URL")
 
     # ── CORS ──────────────────────────────────────────────────────────────────
-    CORS_ORIGINS: list = os.environ.get("CORS_ORIGINS", "*").split(",")
+    CORS_ORIGINS: list = [
+        origin.strip()
+        for origin in os.environ.get("CORS_ORIGINS", "*").split(",")
+        if origin.strip()
+    ]
+    SOCKETIO_CORS_ORIGINS: list = [
+        origin.strip()
+        for origin in os.environ.get(
+            "SOCKETIO_CORS_ORIGINS",
+            os.environ.get("CORS_ORIGINS", "*"),
+        ).split(",")
+        if origin.strip()
+    ]
 
     # ── Scheduler ─────────────────────────────────────────────────────────────
     SCHEDULER_ENABLED: bool = os.environ.get("SCHEDULER_ENABLED", "true").lower() == "true"
@@ -95,16 +111,31 @@ class ProductionConfig(Config):
         "max_overflow": 40,
     }
 
+    @classmethod
+    def validate(cls) -> None:
+        """Fail fast when production is started with unsafe defaults."""
+        if cls.SECRET_KEY == "dev-secret-key-change-in-production":
+            raise RuntimeError("SECRET_KEY must be set to a production secret.")
+        if cls.JWT_SECRET_KEY == "dev-jwt-secret-change-in-production":
+            raise RuntimeError("JWT_SECRET_KEY must be set to a production secret.")
+        if "*" in cls.CORS_ORIGINS:
+            raise RuntimeError("CORS_ORIGINS must be restricted in production.")
+        if "*" in cls.SOCKETIO_CORS_ORIGINS:
+            raise RuntimeError("SOCKETIO_CORS_ORIGINS must be restricted in production.")
+
 
 class TestingConfig(Config):
     TESTING: bool = True
     DEBUG: bool = True
     # Use SQLite in-memory for tests — no real DB needed
-    SQLALCHEMY_DATABASE_URI: str = "sqlite:///:memory:"
+    SQLALCHEMY_DATABASE_URI: str = os.environ.get("SQLALCHEMY_DATABASE_URI", "sqlite:///:memory:")
     SQLALCHEMY_ENGINE_OPTIONS: dict = {}
     JWT_ACCESS_TOKEN_EXPIRES: timedelta = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES: timedelta = timedelta(hours=2)
-    UPLOAD_FOLDER: str = "/tmp/lexy_test_uploads"
+    UPLOAD_FOLDER: str = os.environ.get(
+        "UPLOAD_FOLDER",
+        os.path.join(tempfile.gettempdir(), "lexy_test_uploads"),
+    )
     SCHEDULER_ENABLED: bool = False
     # Use fakeredis or a real Redis (tests stub it out)
     REDIS_URL: str = "redis://localhost:6379/1"

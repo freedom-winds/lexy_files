@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:ble_peripheral/ble_peripheral.dart' as ble_p;
 import 'package:flutter/foundation.dart';
@@ -339,6 +340,70 @@ class BluetoothTransferService extends ChangeNotifier {
       }
 
       // Send end-of-transfer signal.
+      final eot = utf8.encode('{"type":"eot"}');
+      await rxChar.write(eot, withoutResponse: false);
+
+      await device.disconnect();
+      return null;
+    } catch (e) {
+      try {
+        await device.disconnect();
+      } catch (_) {}
+      return 'Transfer failed: $e';
+    }
+  }
+
+  /// Send a file from disk without loading the whole object into memory.
+  Future<String?> sendFileFromPath({
+    required BluetoothDevice device,
+    required String filePath,
+    required String fileName,
+    required int fileSize,
+    BleProgressCallback? onProgress,
+  }) async {
+    try {
+      await device.connect(timeout: const Duration(seconds: 15));
+      final services = await device.discoverServices();
+
+      BluetoothCharacteristic? rxChar;
+      for (final service in services) {
+        if (service.uuid == Guid(lexyServiceUuid)) {
+          for (final c in service.characteristics) {
+            if (c.uuid == Guid(lexyRxCharUuid)) {
+              rxChar = c;
+              break;
+            }
+          }
+          break;
+        }
+      }
+
+      if (rxChar == null) {
+        await device.disconnect();
+        return 'Device does not expose the Lexy Files RX characteristic.';
+      }
+
+      final header = jsonEncode({
+        'file_name': fileName,
+        'file_size': fileSize,
+      });
+      final headerBytes = Uint8List.fromList([...utf8.encode(header), 0x00]);
+      await rxChar.write(headerBytes, withoutResponse: false);
+
+      var sent = 0;
+      await for (final chunk in File(filePath).openRead()) {
+        var offset = 0;
+        while (offset < chunk.length) {
+          final end = (offset + _bleChunkSize).clamp(0, chunk.length);
+          final packet = Uint8List.fromList(chunk.sublist(offset, end));
+          await rxChar.write(packet, withoutResponse: false);
+          sent += packet.length;
+          offset = end;
+          onProgress?.call(sent, fileSize);
+          await Future.delayed(const Duration(milliseconds: 20));
+        }
+      }
+
       final eot = utf8.encode('{"type":"eot"}');
       await rxChar.write(eot, withoutResponse: false);
 

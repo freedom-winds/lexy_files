@@ -10,7 +10,8 @@ String formatFileSize(int bytes) {
   return '${value.toStringAsFixed(1)} ${units[i]}';
 }
 
-String formatRelativeDate(String iso) {
+String formatRelativeDate(String? iso) {
+  if (iso == null || iso.isEmpty) return 'Never expires';
   final d = DateTime.parse(iso);
   final now = DateTime.now();
   final diff = d.difference(now);
@@ -24,7 +25,8 @@ String formatRelativeDate(String iso) {
   return 'in less than a minute';
 }
 
-String formatDate(String iso) {
+String formatDate(String? iso) {
+  if (iso == null || iso.isEmpty) return 'Never';
   final d = DateTime.parse(iso);
   return DateFormat('MMM d, yyyy HH:mm').format(d);
 }

@@ -18,6 +18,7 @@ export interface AuthState {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  ensureAnonymousSession: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthState>(null!);

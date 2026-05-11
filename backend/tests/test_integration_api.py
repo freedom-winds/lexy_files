@@ -5,7 +5,6 @@ Flow: register → login → /me → upload file → pickup by code → download
 """
 
 import io
-import os
 import tempfile
 from unittest.mock import patch
 
@@ -92,7 +91,6 @@ class TestFullApiFlow:
         assert data["user"]["username"] == "alice"
 
         access_token = data["tokens"]["access_token"]
-        refresh_token = data["tokens"]["refresh_token"]
         user_id = data["user"]["id"]
 
         # ── 2. Login with same credentials ───────────────────────────────

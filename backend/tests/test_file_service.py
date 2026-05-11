@@ -2,9 +2,8 @@
 
 import io
 import os
-import tempfile
-from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 
@@ -95,7 +94,11 @@ class TestSaveUploadedFile:
             # Anonymous users have a 15-minute retention.
             assert file_record.expires_at is not None
             # Normalize timezone for SQLite (returns naive datetimes)
-            expires = file_record.expires_at.replace(tzinfo=None) if file_record.expires_at.tzinfo else file_record.expires_at
+            expires = (
+                file_record.expires_at.replace(tzinfo=None)
+                if file_record.expires_at.tzinfo
+                else file_record.expires_at
+            )
             assert expires > before
             assert expires < after + timedelta(seconds=20 * 60)
 

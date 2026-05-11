@@ -159,8 +159,9 @@ export function AdminUsersPage() {
                           disabled={actionLoading === user.id}
                           className="border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
                         >
-                          <option value="free">Free</option>
-                          <option value="pro">Pro</option>
+                          <option value="anonymous">Anonymous</option>
+                          <option value="normal">Normal</option>
+                          <option value="vip">VIP</option>
                           <option value="admin">Admin</option>
                         </select>
                       </td>

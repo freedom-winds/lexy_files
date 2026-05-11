@@ -309,6 +309,38 @@ class LanService extends ChangeNotifier {
     }
   }
 
+  /// Send a file from disk without loading the whole object into memory.
+  Future<void> sendFileFromPath({
+    required LanDevice target,
+    required String filePath,
+    required String fileName,
+    required int fileSize,
+    LanProgressCallback? onProgress,
+  }) async {
+    final socket = await Socket.connect(
+      target.ip,
+      target.port,
+      timeout: const Duration(seconds: 10),
+    );
+
+    try {
+      final header = jsonEncode({'file_name': fileName, 'file_size': fileSize});
+      socket.add(utf8.encode('$header\n'));
+
+      var sent = 0;
+      await for (final chunk in File(filePath).openRead()) {
+        socket.add(chunk);
+        sent += chunk.length;
+        onProgress?.call(sent, fileSize);
+        await Future.delayed(Duration.zero);
+      }
+
+      await socket.flush();
+    } finally {
+      await socket.close();
+    }
+  }
+
   /// Start/stop discovery manually (without full restart).
   void startDiscovery() {
     _isDiscovering = true;

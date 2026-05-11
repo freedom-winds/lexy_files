@@ -74,10 +74,6 @@ class _AuthGate extends StatelessWidget {
       );
     }
 
-    if (!auth.isAuthenticated) {
-      return const LoginScreen();
-    }
-
     return const HomeScreen();
   }
 }

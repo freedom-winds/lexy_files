@@ -11,7 +11,6 @@ from app.models.user import User
 from app.services.auth_service import AuthService
 from app.services.file_service import FileService
 from app.services.quota_service import QuotaService
-from app.utils.constants import DOWNLOAD_CHUNK_SIZE
 from app.utils.errors import (
     AuthenticationError,
     FileExpiredError,

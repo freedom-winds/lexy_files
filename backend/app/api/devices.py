@@ -12,6 +12,10 @@ devices_bp = Blueprint("devices", __name__)
 
 _VALID_DEVICE_TYPES = {"phone", "tablet", "laptop", "desktop", "other"}
 _VALID_PLATFORMS = {"android", "ios", "windows", "macos", "linux", "web"}
+_DEVICE_TYPE_ALIASES = {
+    "mobile": "phone",
+    "tv": "other",
+}
 
 
 @devices_bp.route("/", methods=["GET"])
@@ -47,6 +51,7 @@ def create_device():
 
     name = data.get("name", "").strip()
     device_type = data.get("device_type", "other").strip().lower()
+    device_type = _DEVICE_TYPE_ALIASES.get(device_type, device_type)
     platform = data.get("platform", "web").strip().lower()
     device_id = data.get("device_id", "").strip()
 

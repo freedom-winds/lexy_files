@@ -86,8 +86,6 @@ cd backend
 
 # Initialize database tables
 flask db upgrade
-# Or, if migrations haven't been generated yet:
-# python -c "from app import create_app; from app.extensions import db; app = create_app(); app.app_context().push(); db.create_all()"
 
 # Run development server
 flask run --port 5000
@@ -122,6 +120,8 @@ npm run dev
 ### Production Build
 
 ```bash
+VITE_API_BASE_URL=https://files.example.com/api/v1
+VITE_SOCKET_URL=https://files.example.com
 npm run build
 # Output in web/dist/
 # Serve with any static file server (nginx, caddy, etc.)
@@ -153,11 +153,17 @@ flutter pub get
 
 ### 4.3 Configure API URL
 
-Edit `lib/config/api_config.dart`:
-- Android emulator: `http://10.0.2.2:5000` (default, routes to host machine)
-- iOS simulator: `http://localhost:5000`
-- Physical device: `http://<your-lan-ip>:5000`
-- Windows desktop: `http://localhost:5000`
+The default development API URL is `http://10.0.2.2:5000/api/v1`, which works
+for Android emulators. For other devices, pass URLs at run/build time:
+
+```bash
+flutter run \
+  --dart-define=API_BASE_URL=http://<host-or-lan-ip>:5000/api/v1 \
+  --dart-define=WS_URL=http://<host-or-lan-ip>:5000
+```
+
+Use `localhost` for iOS simulator and Windows/Linux desktop when the backend is
+running on the same machine. Use your LAN IP for physical Android/iOS devices.
 
 ### 4.4 Run
 
@@ -179,14 +185,28 @@ flutter build apk --debug
 # Output: build/app/outputs/flutter-apk/app-debug.apk
 
 # Android release APK (requires signing)
-flutter build apk --release
+flutter build apk --release \
+  --dart-define=API_BASE_URL=https://files.example.com/api/v1 \
+  --dart-define=WS_URL=https://files.example.com
+
+# Android release app bundle
+flutter build appbundle --release \
+  --dart-define=API_BASE_URL=https://files.example.com/api/v1 \
+  --dart-define=WS_URL=https://files.example.com
 
 # Windows desktop
 flutter build windows --debug
 # Output: build/windows/x64/runner/Debug/
 
+# Linux desktop
+flutter build linux --release \
+  --dart-define=API_BASE_URL=https://files.example.com/api/v1 \
+  --dart-define=WS_URL=https://files.example.com
+
 # iOS (requires macOS + Xcode)
-flutter build ios --debug
+flutter build ios --release \
+  --dart-define=API_BASE_URL=https://files.example.com/api/v1 \
+  --dart-define=WS_URL=https://files.example.com
 ```
 
 ### 4.6 Verify
@@ -204,7 +224,8 @@ flutter test      # Run tests (expect 1 passing)
 
 The web client at `http://localhost:3000` proxies API calls to the backend automatically.
 
-The Flutter app connects directly to the backend URL configured in `api_config.dart`.
+The Flutter app connects to the backend URL supplied by `--dart-define`, or to
+the development default in `api_config.dart` when no define is supplied.
 
 ## 6. Creating an Admin User
 

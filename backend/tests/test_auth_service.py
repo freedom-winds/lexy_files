@@ -1,7 +1,6 @@
 """Unit tests for AuthService."""
 
 import pytest
-from sqlalchemy import or_
 
 from app.extensions import db
 from app.models.user import User

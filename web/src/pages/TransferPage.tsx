@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import { Layout } from '../components/Layout';
-import api from '../lib/api';
+import api, { SOCKET_URL } from '../lib/api';
 import { getApiError, formatFileSize } from '../lib/utils';
 import {
   Monitor,
@@ -42,15 +42,24 @@ interface TransferRecord {
 
 const WEB_DEVICE_ID_KEY = 'lexy_web_device_id';
 const CHUNK_SIZE = 128 * 1024; // 128 KB
+const ACCEPT_TIMEOUT_MS = 120_000;
+
+type PendingAccept = {
+  resolve: () => void;
+  reject: (reason: Error) => void;
+  timeout: number;
+};
 
 function DeviceTypeIcon({ type, className }: { type: string; className?: string }) {
   const cls = className ?? 'w-5 h-5 text-indigo-600';
   switch (type.toLowerCase()) {
     case 'phone':
-    case 'mobile':
       return <Smartphone className={cls} />;
     case 'tablet':
       return <Tablet className={cls} />;
+    case 'laptop':
+    case 'desktop':
+      return <Monitor className={cls} />;
     default:
       return <Monitor className={cls} />;
   }
@@ -94,11 +103,29 @@ export function TransferPage() {
 
   const socketRef = useRef<Socket | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingAcceptsRef = useRef<Record<number, PendingAccept>>({});
+
+  const rejectPendingAccept = useCallback((transferId: number, message: string) => {
+    const pending = pendingAcceptsRef.current[transferId];
+    if (!pending) return;
+    window.clearTimeout(pending.timeout);
+    pending.reject(new Error(message));
+    delete pendingAcceptsRef.current[transferId];
+  }, []);
+
+  const waitForAccept = useCallback((transferId: number) => {
+    return new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        rejectPendingAccept(transferId, 'Timed out waiting for the receiver to accept.');
+      }, ACCEPT_TIMEOUT_MS);
+      pendingAcceptsRef.current[transferId] = { resolve, reject, timeout };
+    });
+  }, [rejectPendingAccept]);
 
   // Fetch devices
   const fetchDevices = useCallback(async () => {
     try {
-      const { data } = await api.get<Device[]>('/devices');
+      const { data } = await api.get<Device[]>('/devices/');
       const all = Array.isArray(data) ? data : [];
       const self = all.find((d) => d.device_id === webDeviceId) ?? null;
       setMyDevice(self);
@@ -119,7 +146,7 @@ export function TransferPage() {
     const token = localStorage.getItem('access_token');
     if (!token || !webDeviceId) return;
 
-    const socket = io(window.location.protocol + '//' + window.location.hostname + ':5000', {
+    const socket = io(SOCKET_URL, {
       query: { token, device_id: webDeviceId },
       transports: ['websocket', 'polling'],
     });
@@ -150,18 +177,25 @@ export function TransferPage() {
     });
 
     // Transfer accepted — sender side (our send was accepted)
-    socket.on('transfer.accepted', () => {
-      // The sending loop watches for this via the transferState
+    socket.on('transfer.accepted', (transfer: TransferRecord) => {
+      const transferId = transfer.id;
+      const pending = pendingAcceptsRef.current[transferId];
+      if (!pending) return;
+      window.clearTimeout(pending.timeout);
+      pending.resolve();
+      delete pendingAcceptsRef.current[transferId];
     });
 
     // Transfer rejected
     socket.on('transfer.rejected', (transfer: TransferRecord) => {
+      rejectPendingAccept(transfer.id, `Transfer rejected: ${transfer.file_name}`);
       setSending(false);
       setSendResult({ ok: false, msg: `Transfer rejected: ${transfer.file_name}` });
     });
 
     // Transfer cancelled
-    socket.on('transfer.cancelled', () => {
+    socket.on('transfer.cancelled', (transfer: TransferRecord) => {
+      rejectPendingAccept(transfer.id, 'Transfer was cancelled.');
       setSending(false);
       setReceivingTransfer(null);
       setSendResult({ ok: false, msg: 'Transfer was cancelled.' });
@@ -230,7 +264,8 @@ export function TransferPage() {
     });
 
     // Error
-    socket.on('transfer.error', (payload: { message: string }) => {
+    socket.on('transfer.error', (payload: { transfer_id?: number; message: string }) => {
+      if (payload.transfer_id) rejectPendingAccept(payload.transfer_id, payload.message);
       setSending(false);
       setSendResult({ ok: false, msg: payload.message });
       setReceivingTransfer(null);
@@ -238,10 +273,15 @@ export function TransferPage() {
 
     return () => {
       clearInterval(hb);
+      Object.values(pendingAcceptsRef.current).forEach((pending) => {
+        window.clearTimeout(pending.timeout);
+        pending.reject(new Error('Socket disconnected.'));
+      });
+      pendingAcceptsRef.current = {};
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [webDeviceId]);
+  }, [rejectPendingAccept, webDeviceId]);
 
   // Send file to a device
   const handleSendToDevice = async (targetDevice: Device) => {
@@ -254,7 +294,7 @@ export function TransferPage() {
 
     try {
       // 1. Create transfer via REST API
-      const { data: transfer } = await api.post<TransferRecord>('/transfers', {
+      const { data: transfer } = await api.post<TransferRecord>('/transfers/', {
         mode: 'same_account',
         target_device_id: targetDevice.id,
         sender_device_id: myDevice.id,
@@ -262,8 +302,8 @@ export function TransferPage() {
         file_size: selectedFile.size,
       });
 
-      // 2. Wait a moment for the WS notification to reach receiver
-      await new Promise<void>((r) => setTimeout(r, 500));
+      // 2. Wait until the receiver explicitly accepts the transfer.
+      await waitForAccept(transfer.id);
 
       // 3. Stream file chunks via WebSocket
       const socket = socketRef.current;
@@ -303,7 +343,7 @@ export function TransferPage() {
       socket.emit('transfer_complete', { transfer_id: transfer.id });
     } catch (err) {
       setSending(false);
-      setSendResult({ ok: false, msg: getApiError(err) });
+      setSendResult({ ok: false, msg: err instanceof Error ? err.message : getApiError(err) });
     }
   };
 

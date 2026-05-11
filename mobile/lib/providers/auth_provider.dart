@@ -1,6 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+
+const _anonymousDeviceIdKey = 'anonymous_device_id';
+const _anonymousFingerprintKey = 'anonymous_fingerprint';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService _api;
@@ -14,7 +19,8 @@ class AuthProvider extends ChangeNotifier {
 
   User? get user => _user;
   bool get isLoading => _isLoading;
-  bool get isAuthenticated => _user != null;
+  bool get hasSession => _user != null;
+  bool get isAuthenticated => _user != null && !_user!.isAnonymous;
   String? get error => _error;
 
   Future<void> _init() async {
@@ -84,6 +90,33 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> ensureAnonymousSession() async {
+    if (await _api.hasToken()) return;
+
+    final prefs = SharedPreferencesAsync();
+    final uuid = const Uuid();
+    var deviceId = await prefs.getString(_anonymousDeviceIdKey);
+    if (deviceId == null) {
+      deviceId = uuid.v4();
+      await prefs.setString(_anonymousDeviceIdKey, deviceId);
+    }
+    var fingerprint = await prefs.getString(_anonymousFingerprintKey);
+    if (fingerprint == null) {
+      fingerprint = uuid.v4();
+      await prefs.setString(_anonymousFingerprintKey, fingerprint);
+    }
+
+    final response = await _api.anonymous(deviceId, fingerprint);
+    final data = response.data as Map<String, dynamic>;
+    final tokens = data['tokens'] as Map<String, dynamic>;
+    await _api.setTokens(
+      tokens['access_token'] as String,
+      tokens['refresh_token'] as String,
+    );
+    _user = User.fromJson(data['user'] as Map<String, dynamic>);
+    notifyListeners();
   }
 
   Future<void> logout() async {

@@ -99,6 +99,13 @@ class ApiService {
     return _dio.post(ApiConfig.authLogout);
   }
 
+  Future<Response> anonymous(String deviceId, String fingerprint) {
+    return _dio.post(ApiConfig.authAnonymous, data: {
+      'device_id': deviceId,
+      'fingerprint': fingerprint,
+    });
+  }
+
   // ─── Files ───────────────────────────────────────────────────────────────
 
   Future<Response> uploadFile(
@@ -174,10 +181,7 @@ class ApiService {
 
   /// Mark this device as online by sending a heartbeat (PATCH or POST).
   Future<Response> markDeviceOnline(int deviceId) {
-    return _dio.patch(
-      ApiConfig.deviceById(deviceId),
-      data: {'is_online': true},
-    );
+    return _dio.put(ApiConfig.deviceOnline(deviceId));
   }
 
   // ─── Transfers ───────────────────────────────────────────────────────────
@@ -206,16 +210,16 @@ class ApiService {
 
   // ─── SharedPreferences helpers ───────────────────────────────────────────
 
-  Future<void> setDeviceId(int id) async {
-    await _prefs.setInt('device_id', id);
+  Future<void> setDeviceDbId(int id) async {
+    await _prefs.setInt('device_db_id', id);
   }
 
-  Future<int?> getDeviceId() async {
-    return _prefs.getInt('device_id');
+  Future<int?> getDeviceDbId() async {
+    return _prefs.getInt('device_db_id');
   }
 
-  Future<void> clearDeviceId() async {
-    await _prefs.remove('device_id');
+  Future<void> clearDeviceDbId() async {
+    await _prefs.remove('device_db_id');
   }
 
   // ─── Error helper ────────────────────────────────────────────────────────

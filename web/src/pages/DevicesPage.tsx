@@ -6,7 +6,6 @@ import {
   Monitor,
   Smartphone,
   Tablet,
-  Tv,
   Plus,
   Trash2,
   AlertCircle,
@@ -51,13 +50,13 @@ function getOrCreateWebDeviceId(): string {
 function DeviceTypeIcon({ type }: { type: string }) {
   const cls = 'w-5 h-5 text-indigo-600';
   switch (type.toLowerCase()) {
-    case 'mobile':
     case 'phone':
       return <Smartphone className={cls} />;
     case 'tablet':
       return <Tablet className={cls} />;
-    case 'tv':
-      return <Tv className={cls} />;
+    case 'laptop':
+    case 'desktop':
+      return <Monitor className={cls} />;
     default:
       return <Monitor className={cls} />;
   }
@@ -85,7 +84,7 @@ function RegisterModal({ onClose, onRegistered }: RegisterModalProps) {
     setError(null);
     try {
       const deviceId = generateUUID();
-      await api.post<Device>('/devices', {
+      await api.post<Device>('/devices/', {
         name: name.trim(),
         device_type: deviceType,
         platform,
@@ -154,9 +153,9 @@ function RegisterModal({ onClose, onRegistered }: RegisterModalProps) {
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="desktop">Desktop / Laptop</option>
-              <option value="mobile">Mobile</option>
+              <option value="phone">Phone</option>
               <option value="tablet">Tablet</option>
-              <option value="tv">TV / Set-top box</option>
+              <option value="laptop">Laptop</option>
               <option value="other">Other</option>
             </select>
           </div>
@@ -214,7 +213,7 @@ export function DevicesPage() {
 
   const fetchDevices = useCallback(async () => {
     try {
-      const { data } = await api.get<Device[]>('/devices');
+      const { data } = await api.get<Device[]>('/devices/');
       setDevices(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(getApiError(err));
@@ -228,7 +227,7 @@ export function DevicesPage() {
     if (autoRegisterDone) return;
     setAutoRegisterDone(true);
     try {
-      const { data: existingDevices } = await api.get<Device[]>('/devices');
+      const { data: existingDevices } = await api.get<Device[]>('/devices/');
       const alreadyRegistered = existingDevices.some((d) => d.device_id === webDeviceId);
       if (!alreadyRegistered) {
         const name = (() => {
@@ -241,7 +240,7 @@ export function DevicesPage() {
           if (/Linux/i.test(ua)) return 'Linux Browser';
           return 'Web Browser';
         })();
-        await api.post<Device>('/devices', {
+        await api.post<Device>('/devices/', {
           name,
           device_type: 'desktop',
           platform: 'web',

@@ -31,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _pickAndUpload() async {
     final api = context.read<ApiService>();
+    final auth = context.read<AuthProvider>();
     final result = await FilePicker.platform.pickFiles();
     if (result == null || result.files.isEmpty) return;
 
@@ -44,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _uploadError = null;
     });
     try {
+      await auth.ensureAnonymousSession();
       final response = await api.uploadFile(
         file.path!,
         file.name,
@@ -147,6 +149,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 const PopupMenuDivider(),
                 const PopupMenuItem(value: 'logout', child: Text('Sign out')),
               ],
+            ),
+          ] else ...[
+            TextButton(
+              onPressed: () => Navigator.of(context).pushNamed('/login'),
+              child: const Text('Sign in'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pushNamed('/register'),
+              child: const Text('Register'),
             ),
           ],
         ],

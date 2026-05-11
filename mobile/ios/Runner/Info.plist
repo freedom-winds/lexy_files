@@ -45,5 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Lexy Files uses Bluetooth to discover nearby devices and transfer files.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Lexy Files uses Bluetooth to receive files from nearby devices.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Lexy Files uses the local network to discover and transfer files to nearby devices.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_lexyfiles._tcp</string>
+	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>

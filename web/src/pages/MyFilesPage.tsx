@@ -30,7 +30,7 @@ export function MyFilesPage() {
 
   const fetchFiles = useCallback(async () => {
     try {
-      const { data } = await api.get<PaginatedResponse<UserFile>>('/files');
+      const { data } = await api.get<PaginatedResponse<UserFile>>('/files/');
       setFiles(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
       setError(getApiError(err));

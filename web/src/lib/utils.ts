@@ -6,7 +6,8 @@ export function formatFileSize(bytes: number): string {
   return `${value % 1 === 0 ? value : value.toFixed(1)} ${units[i]}`;
 }
 
-export function formatDate(iso: string): string {
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return 'Never';
   const d = new Date(iso);
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -17,7 +18,8 @@ export function formatDate(iso: string): string {
   });
 }
 
-export function formatRelativeDate(iso: string): string {
+export function formatRelativeDate(iso: string | null | undefined): string {
+  if (!iso) return 'Never expires';
   const d = new Date(iso);
   const now = new Date();
   const diffMs = d.getTime() - now.getTime();

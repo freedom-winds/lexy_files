@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { Files, LogOut, User, LayoutDashboard, Menu, X, Monitor, ArrowRightLeft } from 'lucide-react';
+import { Files, LogOut, User, LayoutDashboard, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import clsx from 'clsx';

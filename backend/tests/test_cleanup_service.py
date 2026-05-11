@@ -3,8 +3,6 @@
 import os
 from datetime import timedelta
 
-import pytest
-
 from app.extensions import db
 from app.models.file import File
 from app.models.user import User
@@ -84,7 +82,7 @@ class TestExpireOverdueFiles:
             u = db.session.get(User, normal_user.id)
             past = utcnow() - timedelta(hours=1)
             # Already expired — should not be re-processed.
-            f = _make_file(app, u, "expired", "AL0001", expires_at=past)
+            _make_file(app, u, "expired", "AL0001", expires_at=past)
 
             count = CleanupService.expire_overdue_files()
             assert count == 0

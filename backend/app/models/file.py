@@ -56,12 +56,16 @@ class File(db.Model):
             "mime_type": self.mime_type,
             "pickup_code": self.pickup_code,
             "download_count": self.download_count,
+            "max_downloads": None,
             "status": self.status,
+            "is_expired": self.status != "active" or self.is_expired(),
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
             "redemption_ends_at": self.redemption_ends_at.isoformat() if self.redemption_ends_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
         if include_admin:
+            data["uploader_id"] = self.user_id
+            data["uploader_username"] = self.user.username if self.user else None
             data["storage_path"] = self.storage_path
             data["stored_filename"] = self.stored_filename
             data["deleted_at"] = self.deleted_at.isoformat() if self.deleted_at else None

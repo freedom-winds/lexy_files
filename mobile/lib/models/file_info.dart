@@ -6,7 +6,7 @@ class FileInfo {
   final String pickupCode;
   final int downloadCount;
   final int? maxDownloads;
-  final String expiresAt;
+  final String? expiresAt;
   final String createdAt;
   final bool isExpired;
 
@@ -32,7 +32,7 @@ class FileInfo {
       pickupCode: json['pickup_code'] as String,
       downloadCount: json['download_count'] as int? ?? 0,
       maxDownloads: json['max_downloads'] as int?,
-      expiresAt: json['expires_at'] as String,
+      expiresAt: json['expires_at'] as String?,
       createdAt: json['created_at'] as String,
       isExpired: json['is_expired'] as bool? ?? false,
     );
