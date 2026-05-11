@@ -1,0 +1,36 @@
+[Unit]
+Description=Lexy Files Backend
+Documentation=file:/opt/lexy_files/DEPLOY.md
+After=network-online.target mysql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lexy
+Group=www-data
+WorkingDirectory=/opt/lexy_files/backend
+
+# Keep production secrets and deployment config in this file.
+# The file must contain FLASK_ENV=production and the required backend env vars.
+EnvironmentFile=/opt/lexy_files/backend/.env
+Environment=FLASK_ENV=production
+
+# Socket.IO relay uses eventlet. Keep one Gunicorn worker per instance unless
+# you add sticky sessions and a Socket.IO message queue for multi-instance scale.
+ExecStart=/opt/lexy_files/backend/venv/bin/gunicorn --worker-class eventlet --workers 1 --bind 127.0.0.1:60512 --timeout 120 --access-logfile - --error-logfile - "app:create_app('production')"
+ExecReload=/bin/kill -HUP $MAINPID
+
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+LimitNOFILE=65535
+
+# Basic hardening. Keep backend and upload storage writable.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/lexy_files/backend /var/data/lexy_files
+
+[Install]
+WantedBy=multi-user.target

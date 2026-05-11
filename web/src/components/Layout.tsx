@@ -1,7 +1,9 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import api from '../lib/api';
+import { getOrCreateWebDeviceId, getWebDeviceName } from '../lib/webDevice';
 import { Files, LogOut, User, LayoutDashboard, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import clsx from 'clsx';
 
@@ -9,10 +11,88 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+interface PresenceDevice {
+  id: number;
+  device_id: string;
+}
+
+const WEB_PRESENCE_INTERVAL_MS = 30_000;
+
 export function Layout({ children }: LayoutProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const onlineDeviceDbIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      onlineDeviceDbIdRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+
+    const ensureDeviceOnline = async () => {
+      try {
+        const webDeviceId = getOrCreateWebDeviceId();
+        const { data: devices } = await api.get<PresenceDevice[]>('/devices/');
+        let currentDevice = devices.find((device) => device.device_id === webDeviceId);
+
+        if (!currentDevice) {
+          const created = await api.post<PresenceDevice>('/devices/', {
+            name: getWebDeviceName(),
+            device_type: 'desktop',
+            platform: 'web',
+            device_id: webDeviceId,
+          });
+          currentDevice = created.data;
+        }
+
+        await api.put(`/devices/${currentDevice.id}/online`);
+        if (!cancelled) {
+          onlineDeviceDbIdRef.current = currentDevice.id;
+        }
+      } catch {
+        if (!cancelled) {
+          onlineDeviceDbIdRef.current = null;
+        }
+      }
+    };
+
+    const heartbeat = async () => {
+      const deviceId = onlineDeviceDbIdRef.current;
+      if (!deviceId) {
+        await ensureDeviceOnline();
+        return;
+      }
+
+      try {
+        await api.put(`/devices/${deviceId}/online`);
+      } catch {
+        await ensureDeviceOnline();
+      }
+    };
+
+    void ensureDeviceOnline();
+    const interval = window.setInterval(() => {
+      void heartbeat();
+    }, WEB_PRESENCE_INTERVAL_MS);
+
+    const markVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void heartbeat();
+      }
+    };
+    window.addEventListener('focus', markVisible);
+    document.addEventListener('visibilitychange', markVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', markVisible);
+      document.removeEventListener('visibilitychange', markVisible);
+    };
+  }, [isAuthenticated, user?.id]);
 
   const handleLogout = async () => {
     await logout();

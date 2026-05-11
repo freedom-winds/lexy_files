@@ -4,6 +4,7 @@ import type { Socket } from 'socket.io-client';
 import { Layout } from '../components/Layout';
 import api, { SOCKET_URL } from '../lib/api';
 import { getApiError, formatFileSize } from '../lib/utils';
+import { getOrCreateWebDeviceId } from '../lib/webDevice';
 import {
   Monitor,
   Smartphone,
@@ -40,7 +41,6 @@ interface TransferRecord {
   progress_percent: number;
 }
 
-const WEB_DEVICE_ID_KEY = 'lexy_web_device_id';
 const CHUNK_SIZE = 128 * 1024; // 128 KB
 const ACCEPT_TIMEOUT_MS = 120_000;
 
@@ -77,7 +77,7 @@ function downloadBlob(blob: Blob, name: string) {
 }
 
 export function TransferPage() {
-  const webDeviceId = localStorage.getItem(WEB_DEVICE_ID_KEY) ?? '';
+  const webDeviceId = getOrCreateWebDeviceId();
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [myDevice, setMyDevice] = useState<Device | null>(null);

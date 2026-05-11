@@ -18,6 +18,7 @@ REDIS_USER_ONLINE_PREFIX = "user_online:"
 REDIS_DEVICE_ONLINE_PREFIX = "device_online:"
 # WebSocket – maps socket SID → device DB id (used for presence cleanup)
 REDIS_WS_SID_PREFIX = "ws_sid:"
+DEVICE_ONLINE_TTL_SECONDS = 120
 
 # Token type identifiers stored in JWT 'type' claim
 TOKEN_TYPE_ACCESS = "access"

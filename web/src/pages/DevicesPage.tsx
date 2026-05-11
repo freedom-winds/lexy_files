@@ -3,6 +3,12 @@ import { Layout } from '../components/Layout';
 import api from '../lib/api';
 import { getApiError, formatDate } from '../lib/utils';
 import {
+  generateUUID,
+  getOrCreateWebDeviceId,
+  getWebDeviceName,
+  WEB_DEVICE_ID_KEY,
+} from '../lib/webDevice';
+import {
   Monitor,
   Smartphone,
   Tablet,
@@ -24,27 +30,6 @@ interface Device {
   is_online: boolean;
   last_seen_at: string | null;
   created_at: string;
-}
-
-const WEB_DEVICE_ID_KEY = 'lexy_web_device_id';
-
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
-
-function getOrCreateWebDeviceId(): string {
-  let id = localStorage.getItem(WEB_DEVICE_ID_KEY);
-  if (!id) {
-    id = generateUUID();
-    localStorage.setItem(WEB_DEVICE_ID_KEY, id);
-  }
-  return id;
 }
 
 function DeviceTypeIcon({ type }: { type: string }) {
@@ -228,26 +213,17 @@ export function DevicesPage() {
     setAutoRegisterDone(true);
     try {
       const { data: existingDevices } = await api.get<Device[]>('/devices/');
-      const alreadyRegistered = existingDevices.some((d) => d.device_id === webDeviceId);
-      if (!alreadyRegistered) {
-        const name = (() => {
-          const ua = navigator.userAgent;
-          if (/iPhone/i.test(ua)) return 'iPhone (Web)';
-          if (/iPad/i.test(ua)) return 'iPad (Web)';
-          if (/Android/i.test(ua)) return 'Android (Web)';
-          if (/Mac/i.test(ua)) return 'Mac Browser';
-          if (/Win/i.test(ua)) return 'Windows Browser';
-          if (/Linux/i.test(ua)) return 'Linux Browser';
-          return 'Web Browser';
-        })();
-        await api.post<Device>('/devices/', {
-          name,
+      let currentDevice = existingDevices.find((d) => d.device_id === webDeviceId);
+      if (!currentDevice) {
+        const { data: created } = await api.post<Device>('/devices/', {
+          name: getWebDeviceName(),
           device_type: 'desktop',
           platform: 'web',
           device_id: webDeviceId,
         });
+        currentDevice = created;
       }
-      setDevices(Array.isArray(existingDevices) ? existingDevices : []);
+      await api.put<Device>(`/devices/${currentDevice.id}/online`);
     } catch {
       // Non-fatal: silently fall back to fetching without auto-register
     } finally {
@@ -263,7 +239,7 @@ export function DevicesPage() {
     const device = devices.find((d) => d.id === id);
     const isSelf = device?.device_id === webDeviceId;
     const confirmMsg = isSelf
-      ? 'Remove this browser from your devices? You can re-register it by revisiting this page.'
+      ? 'Remove this browser from your devices? It will be registered again while this signed-in session is active.'
       : `Remove "${device?.name ?? 'this device'}"? This cannot be undone.`;
     if (!confirm(confirmMsg)) return;
 

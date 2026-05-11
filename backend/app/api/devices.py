@@ -6,6 +6,8 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.extensions import db
 from app.models.device import Device
 from app.models.user import User
+from app.services.auth_service import AuthService
+from app.utils.constants import DEVICE_ONLINE_TTL_SECONDS, REDIS_DEVICE_ONLINE_PREFIX
 from app.utils.errors import AuthenticationError, ForbiddenError, NotFoundError, ValidationError
 
 devices_bp = Blueprint("devices", __name__)
@@ -31,7 +33,7 @@ def list_devices():
         raise AuthenticationError("User not found.")
 
     devices = Device.query.filter_by(user_id=user.id).order_by(Device.created_at.desc()).all()
-    return jsonify([d.to_dict() for d in devices]), 200
+    return jsonify([_device_to_presence_dict(d) for d in devices]), 200
 
 
 @devices_bp.route("/", methods=["POST"])
@@ -131,6 +133,33 @@ def mark_online(device_id: int):
         raise ForbiddenError("You do not have permission to update this device.")
 
     device.mark_online()
+    try:
+        _refresh_device_presence(device)
+    except Exception:
+        # Keep REST heartbeat useful even during a transient Redis outage.
+        pass
     db.session.commit()
 
-    return jsonify(device.to_dict()), 200
+    return jsonify(_device_to_presence_dict(device)), 200
+
+
+def _refresh_device_presence(device: Device) -> None:
+    """Refresh the Redis presence TTL for a device heartbeat."""
+    redis = AuthService.get_redis()
+    key = REDIS_DEVICE_ONLINE_PREFIX + str(device.id)
+    redis.setex(key, DEVICE_ONLINE_TTL_SECONDS, "rest-heartbeat")
+
+
+def _is_device_online(device: Device) -> bool:
+    """Return online presence based on Redis TTL, falling back to DB state."""
+    try:
+        redis = AuthService.get_redis()
+        return redis.exists(REDIS_DEVICE_ONLINE_PREFIX + str(device.id)) == 1
+    except Exception:
+        return bool(device.is_online)
+
+
+def _device_to_presence_dict(device: Device) -> dict:
+    data = device.to_dict()
+    data["is_online"] = _is_device_online(device)
+    return data

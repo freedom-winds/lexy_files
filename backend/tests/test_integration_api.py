@@ -360,3 +360,40 @@ class TestAnonymousFlow:
     def test_anonymous_requires_identifier(self, client):
         resp = client.post("/api/v1/auth/anonymous", json={})
         assert resp.status_code == 400
+
+
+class TestDevicePresence:
+    """Test device online state exposed through the REST API."""
+
+    def test_online_heartbeat_updates_device_list(self, client):
+        resp = client.post("/api/v1/auth/register", json={
+            "username": "deviceuser",
+            "email": "deviceuser@example.com",
+            "password": "Password1!",
+        })
+        token = resp.get_json()["tokens"]["access_token"]
+
+        resp = client.post(
+            "/api/v1/devices/",
+            headers=auth_header(token),
+            json={
+                "name": "Browser",
+                "device_type": "desktop",
+                "platform": "web",
+                "device_id": "web-device-001",
+            },
+        )
+        assert resp.status_code == 201
+        device_id = resp.get_json()["id"]
+
+        resp = client.get("/api/v1/devices/", headers=auth_header(token))
+        assert resp.status_code == 200
+        assert resp.get_json()[0]["is_online"] is False
+
+        resp = client.put(f"/api/v1/devices/{device_id}/online", headers=auth_header(token))
+        assert resp.status_code == 200
+        assert resp.get_json()["is_online"] is True
+
+        resp = client.get("/api/v1/devices/", headers=auth_header(token))
+        assert resp.status_code == 200
+        assert resp.get_json()[0]["is_online"] is True

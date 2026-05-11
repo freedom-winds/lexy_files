@@ -62,16 +62,12 @@ from app.models.transfer import Transfer
 from app.models.user import User
 from app.services.auth_service import AuthService
 from app.services.quota_service import QuotaService
-from app.utils.constants import REDIS_DEVICE_ONLINE_PREFIX
+from app.utils.constants import DEVICE_ONLINE_TTL_SECONDS, REDIS_DEVICE_ONLINE_PREFIX
 from app.utils.errors import QuotaExceededError
 
 log = logging.getLogger(__name__)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-
-# Redis TTL for the device-online key (seconds).
-# If a device silently drops without disconnect the key expires on its own.
-_DEVICE_ONLINE_TTL = 120  # 2 minutes; heartbeat interval should be ≤ 60 s
 
 # How many bytes_transferred must accumulate between progress broadcasts.
 _PROGRESS_GRANULARITY = 256 * 1024  # 256 KB
@@ -146,7 +142,7 @@ def _mark_device_online(user: User, device: Device, sid: str) -> None:
 
     redis = AuthService.get_redis()
     key = REDIS_DEVICE_ONLINE_PREFIX + str(device.id)
-    redis.setex(key, _DEVICE_ONLINE_TTL, sid)
+    redis.setex(key, DEVICE_ONLINE_TTL_SECONDS, sid)
 
     # Broadcast to every other device on the same account (not to the
     # connecting device itself – it already knows it's online).
@@ -274,7 +270,7 @@ class TransferNamespace(Namespace):
 
         redis = AuthService.get_redis()
         key = REDIS_DEVICE_ONLINE_PREFIX + str(fresh_device.id)
-        redis.expire(key, _DEVICE_ONLINE_TTL)
+        redis.expire(key, DEVICE_ONLINE_TTL_SECONDS)
 
         emit("device.heartbeat.ack", {"device_id": fresh_device.id, "ts": fresh_device.last_seen_at.isoformat()})
 
