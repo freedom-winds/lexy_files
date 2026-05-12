@@ -159,19 +159,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader(AuthProvider auth) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryDark,
-        borderRadius: BorderRadius.circular(8),
-      ),
+    return HeroSurface(
       child: Row(
         children: [
-          const AppIconBadge(
-            icon: Icons.folder_shared_rounded,
-            color: Colors.white,
-            background: Color(0x3327D7C7),
-            size: 48,
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(50),
+              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            ),
+            child: const Icon(
+              Icons.folder_shared_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -180,18 +182,19 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   auth.isAuthenticated
-                      ? 'Ready, ${auth.user?.username ?? 'user'}'
-                      : 'Quick file handoff',
+                      ? 'Welcome back, ${auth.user?.username ?? 'user'}'
+                      : 'Send files instantly',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 const Text(
-                  'Send once, pick up anywhere.',
-                  style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 13),
+                  'Share with a pickup code, any device.',
+                  style: TextStyle(color: Color(0xE6FFFFFF), fontSize: 13),
                 ),
               ],
             ),
@@ -310,11 +313,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceMuted,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppTheme.border),
+            color: AppTheme.primarySubtle,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
           ),
           child: Row(
             children: [
@@ -322,17 +324,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   result.pickupCode,
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 26,
                     fontFamily: 'monospace',
                     fontWeight: FontWeight.w800,
                     color: AppTheme.primaryColor,
-                    letterSpacing: 5,
+                    letterSpacing: 6,
                   ),
                 ),
               ),
               IconButton(
                 onPressed: () => _copyCode(result.pickupCode),
-                icon: Icon(_copied ? Icons.check : Icons.copy),
+                icon: Icon(
+                  _copied ? Icons.check_rounded : Icons.copy_rounded,
+                  color: AppTheme.primaryColor,
+                ),
                 tooltip: _copied ? 'Copied' : 'Copy',
               ),
             ],

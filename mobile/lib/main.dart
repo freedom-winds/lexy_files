@@ -10,6 +10,7 @@ import 'providers/navigation_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/pickup_screen.dart';
+import 'screens/design_preview_screen.dart';
 import 'widgets/app_shell.dart';
 
 void main() {
@@ -55,6 +56,10 @@ class LexyFilesApp extends StatelessWidget {
           case '/pickup':
             final code = settings.arguments as String;
             return MaterialPageRoute(builder: (_) => PickupScreen(code: code));
+          case '/design-preview':
+            return MaterialPageRoute(
+              builder: (_) => const DesignPreviewScreen(),
+            );
           default:
             return MaterialPageRoute(builder: (_) => const AppShell());
         }

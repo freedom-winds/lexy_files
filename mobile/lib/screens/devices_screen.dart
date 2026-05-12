@@ -6,7 +6,6 @@ import '../config/theme.dart';
 import '../services/api_service.dart';
 import '../services/device_presence_service.dart';
 import '../widgets/app_ui.dart';
-import '../widgets/common_cards.dart';
 
 class DevicesScreen extends StatefulWidget {
   const DevicesScreen({super.key});
@@ -237,14 +236,21 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             AppIconBadge(
               icon: _getDeviceIcon(type),
               color: isOnline ? AppTheme.success : AppTheme.textSecondary,
+              gradient: isOnline
+                  ? AppTheme.successGradient
+                  : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF9CA3AF), Color(0xFF6B7280)],
+                    ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,18 +258,30 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   Text(
                     device['name'] ?? 'Unknown',
                     style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '$platform - $type',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textSecondary,
-                    ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          '$platform • $type',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isOnline) ...[
+                        const SizedBox(width: 10),
+                        const PulsingDot(),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -274,7 +292,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
             ),
             const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(Icons.delete_outline_rounded),
               tooltip: 'Remove',
               onPressed: () => _deleteDevice(
                 device['id'] as int,
@@ -310,35 +328,67 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryDark,
-        borderRadius: BorderRadius.circular(8),
-      ),
+    return HeroSurface(
       child: Row(
         children: [
-          const AppIconBadge(
-            icon: Icons.sensors_rounded,
-            color: Colors.white,
-            background: Color(0x3327D7C7),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(50),
+              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            ),
+            child: const Icon(
+              Icons.sensors_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '$online online',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '$online',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        'online',
+                        style: TextStyle(
+                          color: Color(0xE6FFFFFF),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (online > 0) ...[
+                      const SizedBox(width: 10),
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 10),
+                        child: PulsingDot(color: Colors.white),
+                      ),
+                    ],
+                  ],
                 ),
+                const SizedBox(height: 4),
                 Text(
                   '$total registered device${total == 1 ? '' : 's'}',
-                  style: const TextStyle(color: Color(0xCCFFFFFF)),
+                  style: const TextStyle(
+                    color: Color(0xCCFFFFFF),
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),

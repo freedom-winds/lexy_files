@@ -142,7 +142,7 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
     final isCopied = _copiedCode == file.pickupCode;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -150,7 +150,7 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const AppIconBadge(icon: Icons.insert_drive_file_rounded),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,15 +158,16 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                       Text(
                         file.originalFilename,
                         style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
                       Text(
-                        '${formatFileSize(file.fileSize)} - ${formatDate(file.createdAt)}',
+                        '${formatFileSize(file.fileSize)} • ${formatDate(file.createdAt)}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.textSecondary,
@@ -181,27 +182,27 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                   const StatusPill(label: 'Active', color: AppTheme.success),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Row(
               children: [
                 InkWell(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                   onTap: () => _copyCode(file.pickupCode),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
+                      horizontal: 12,
+                      vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceMuted,
-                      borderRadius: BorderRadius.circular(8),
+                      color: AppTheme.primarySubtle,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isCopied ? Icons.check : Icons.copy,
-                          size: 15,
+                          isCopied ? Icons.check_rounded : Icons.copy_rounded,
+                          size: 14,
                           color: AppTheme.primaryColor,
                         ),
                         const SizedBox(width: 6),
@@ -210,7 +211,7 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                           style: const TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 13,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                             color: AppTheme.primaryColor,
                             letterSpacing: 2,
                           ),
@@ -219,22 +220,22 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 _Meta(
                   icon: Icons.download_rounded,
                   value: '${file.downloadCount}',
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _Meta(
-                    icon: Icons.schedule,
+                    icon: Icons.schedule_rounded,
                     value: file.isExpired
                         ? 'Expired'
                         : formatRelativeDate(file.expiresAt),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(Icons.delete_outline_rounded),
                   tooltip: 'Delete',
                   onPressed: () => _deleteFile(file),
                 ),
