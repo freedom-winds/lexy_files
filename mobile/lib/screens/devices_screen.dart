@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import '../config/theme.dart';
 import '../services/api_service.dart';
 import '../services/device_presence_service.dart';
+import '../widgets/app_ui.dart';
 
 class DevicesScreen extends StatefulWidget {
   const DevicesScreen({super.key});
@@ -40,6 +42,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = api.getApiError(e);
         _loading = false;
@@ -52,19 +55,14 @@ class _DevicesScreenState extends State<DevicesScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Register Device'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Device name',
-                hintText: 'My Phone',
-              ),
-              autofocus: true,
-            ),
-          ],
+        title: const Text('Register device'),
+        content: TextField(
+          controller: nameCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Device name',
+            hintText: 'My device',
+          ),
+          autofocus: true,
         ),
         actions: [
           TextButton(
@@ -93,7 +91,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
       );
       final created = response.data as Map<String, dynamic>;
 
-      // Store device ID locally
       final prefs = SharedPreferencesAsync();
       await prefs.setString('device_id', deviceId);
       await prefs.setInt('device_db_id', created['id'] as int);
@@ -144,15 +141,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove Device'),
+        title: const Text('Remove device'),
         content: Text('Remove "$name" from your account?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Remove'),
           ),
@@ -177,6 +174,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final online = _devices.where((d) => d['is_online'] == true).length;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Devices'),
@@ -191,81 +190,99 @@ class _DevicesScreenState extends State<DevicesScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _fetchDevices,
-                    child: const Text('Retry'),
-                  ),
-                ],
+          ? AppEmptyState(
+              icon: Icons.error_outline,
+              title: 'Could not load devices',
+              subtitle: _error!,
+              action: FilledButton(
+                onPressed: _fetchDevices,
+                child: const Text('Retry'),
               ),
             )
           : _devices.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.devices, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  const Text('No devices registered'),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    onPressed: _registerDevice,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Register this device'),
-                  ),
-                ],
+          ? AppEmptyState(
+              icon: Icons.devices_rounded,
+              title: 'No devices registered',
+              subtitle: 'This device should appear here after sign-in.',
+              action: FilledButton.icon(
+                onPressed: _registerDevice,
+                icon: const Icon(Icons.add),
+                label: const Text('Register this device'),
               ),
             )
           : RefreshIndicator(
               onRefresh: _fetchDevices,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _devices.length,
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                itemCount: _devices.length + 1,
+                separatorBuilder: (_, index) => index == 0
+                    ? const SizedBox(height: 12)
+                    : const SizedBox(height: 8),
                 itemBuilder: (ctx, i) {
-                  final d = _devices[i];
-                  final isOnline = d['is_online'] == true;
-                  return Card(
-                    child: ListTile(
-                      leading: Icon(
-                        _getDeviceIcon(d['device_type'] ?? ''),
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      title: Text(d['name'] ?? 'Unknown'),
-                      subtitle: Text(
-                        '${d['platform'] ?? ''} \u00b7 ${d['device_type'] ?? ''}'
-                        '${isOnline ? ' \u00b7 Online' : ''}',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isOnline ? Colors.green : Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _deleteDevice(
-                              d['id'] as int,
-                              d['name'] ?? 'Unknown',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  if (i == 0) {
+                    return _SummaryCard(online: online, total: _devices.length);
+                  }
+                  return _buildDeviceCard(_devices[i - 1]);
                 },
               ),
             ),
+    );
+  }
+
+  Widget _buildDeviceCard(Map<String, dynamic> device) {
+    final isOnline = device['is_online'] == true;
+    final platform = (device['platform'] ?? '').toString();
+    final type = (device['device_type'] ?? '').toString();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            AppIconBadge(
+              icon: _getDeviceIcon(type),
+              color: isOnline ? AppTheme.success : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    device['name'] ?? 'Unknown',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '$platform - $type',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            StatusPill(
+              label: isOnline ? 'Online' : 'Offline',
+              color: isOnline ? AppTheme.success : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Remove',
+              onPressed: () => _deleteDevice(
+                device['id'] as int,
+                device['name'] ?? 'Unknown',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -274,12 +291,59 @@ class _DevicesScreenState extends State<DevicesScreen> {
       case 'phone':
         return Icons.smartphone;
       case 'tablet':
-        return Icons.tablet;
+        return Icons.tablet_mac;
       case 'desktop':
       case 'laptop':
         return Icons.computer;
       default:
         return Icons.devices;
     }
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.online, required this.total});
+
+  final int online;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryDark,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const AppIconBadge(
+            icon: Icons.sensors_rounded,
+            color: Colors.white,
+            background: Color(0x3327D7C7),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$online online',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  '$total registered device${total == 1 ? '' : 's'}',
+                  style: const TextStyle(color: Color(0xCCFFFFFF)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
