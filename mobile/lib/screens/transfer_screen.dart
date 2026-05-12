@@ -53,11 +53,7 @@ class _TransferScreenState extends State<TransferScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
-          _RelayTab(),
-          _LanTab(),
-          _BluetoothTab(),
-        ],
+        children: const [_RelayTab(), _LanTab(), _BluetoothTab()],
       ),
     );
   }
@@ -319,10 +315,9 @@ class _RelayTabState extends State<_RelayTab> {
       final bytes = builder.toBytes();
 
       setState(() {
-        _completedDownloads.add(_CompletedDownload(
-          fileName: _receivingFileName!,
-          data: bytes,
-        ));
+        _completedDownloads.add(
+          _CompletedDownload(fileName: _receivingFileName!, data: bytes),
+        );
         _receivingTransferId = null;
         _receivingFileName = null;
         _receivingFileSize = 0;
@@ -371,7 +366,9 @@ class _RelayTabState extends State<_RelayTab> {
   Future<void> _sendToDevice(Map<String, dynamic> device) async {
     if (_wsService == null || !_wsConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not connected to server. Please wait...')),
+        const SnackBar(
+          content: Text('Not connected to server. Please wait...'),
+        ),
       );
       return;
     }
@@ -421,10 +418,9 @@ class _RelayTabState extends State<_RelayTab> {
 
           _wsService!.sendChunk(transferId, bytes);
 
-          final pct =
-              file.size > 0
-                  ? (sent / file.size * 100).clamp(0, 100).toDouble()
-                  : 100.0;
+          final pct = file.size > 0
+              ? (sent / file.size * 100).clamp(0, 100).toDouble()
+              : 100.0;
           if (mounted) {
             setState(() => _sendProgress = pct);
           }
@@ -454,8 +450,8 @@ class _RelayTabState extends State<_RelayTab> {
           _sendResult = e is TimeoutException
               ? 'Timed out waiting for the receiver to accept.'
               : e is String
-                  ? e
-                  : api.getApiError(e);
+              ? e
+              : api.getApiError(e);
           _sendOk = false;
         });
       }
@@ -470,14 +466,14 @@ class _RelayTabState extends State<_RelayTab> {
       final savePath = '${dir.path}/${dl.fileName}';
       await File(savePath).writeAsBytes(dl.data);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saved to: $savePath')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Saved to: $savePath')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
     }
   }
 
@@ -513,8 +509,12 @@ class _RelayTabState extends State<_RelayTab> {
       );
     }
 
-    final onlineDevices = _devices.where((d) => d['is_online'] == true).toList();
-    final offlineDevices = _devices.where((d) => d['is_online'] != true).toList();
+    final onlineDevices = _devices
+        .where((d) => d['is_online'] == true)
+        .toList();
+    final offlineDevices = _devices
+        .where((d) => d['is_online'] != true)
+        .toList();
 
     return RefreshIndicator(
       onRefresh: _fetchDevices,
@@ -523,9 +523,7 @@ class _RelayTabState extends State<_RelayTab> {
         children: [
           // Connection status
           Card(
-            color: _wsConnected
-                ? Colors.green[50]
-                : Colors.orange[50],
+            color: _wsConnected ? Colors.green[50] : Colors.orange[50],
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
@@ -540,8 +538,8 @@ class _RelayTabState extends State<_RelayTab> {
                     _wsConnected
                         ? 'Connected to relay server'
                         : _myDeviceId == null && !_loading
-                            ? 'Registering this device...'
-                            : 'Connecting to relay server...',
+                        ? 'Registering this device...'
+                        : 'Connecting to relay server...',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -632,22 +630,24 @@ class _RelayTabState extends State<_RelayTab> {
           ],
 
           // Completed downloads
-          ..._completedDownloads.map((dl) => Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Card(
-                  color: Colors.green[50],
-                  child: ListTile(
-                    leading: const Icon(Icons.check_circle, color: Colors.green),
-                    title: Text(dl.fileName, overflow: TextOverflow.ellipsis),
-                    subtitle: Text(formatFileSize(dl.data.length)),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.save_alt),
-                      tooltip: 'Save file',
-                      onPressed: () => _saveFile(dl),
-                    ),
+          ..._completedDownloads.map(
+            (dl) => Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Card(
+                color: Colors.green[50],
+                child: ListTile(
+                  leading: const Icon(Icons.check_circle, color: Colors.green),
+                  title: Text(dl.fileName, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(formatFileSize(dl.data.length)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.save_alt),
+                    tooltip: 'Save file',
+                    onPressed: () => _saveFile(dl),
                   ),
                 ),
-              )),
+              ),
+            ),
+          ),
 
           // Sending progress
           if (_sending) ...[
@@ -661,8 +661,10 @@ class _RelayTabState extends State<_RelayTab> {
                     const SizedBox(height: 12),
                     LinearProgressIndicator(value: _sendProgress / 100),
                     const SizedBox(height: 4),
-                    Text('${_sendProgress.toInt()}%',
-                        style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      '${_sendProgress.toInt()}%',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -695,22 +697,24 @@ class _RelayTabState extends State<_RelayTab> {
             Text(
               'Online Devices',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
             const SizedBox(height: 8),
-            ...onlineDevices.map((device) => Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.devices, color: Colors.green),
-                    title: Text(device['name'] ?? 'Unknown'),
-                    subtitle: Text('${device['platform']} \u00b7 Online'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: _sending ? null : () => _sendToDevice(device),
-                      tooltip: 'Send file',
-                    ),
+            ...onlineDevices.map(
+              (device) => Card(
+                child: ListTile(
+                  leading: const Icon(Icons.devices, color: Colors.green),
+                  title: Text(device['name'] ?? 'Unknown'),
+                  subtitle: Text('${device['platform']} \u00b7 Online'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: _sending ? null : () => _sendToDevice(device),
+                    tooltip: 'Send file',
                   ),
-                )),
+                ),
+              ),
+            ),
           ],
 
           // Offline devices
@@ -718,19 +722,23 @@ class _RelayTabState extends State<_RelayTab> {
             const SizedBox(height: 16),
             Text(
               'Offline Devices',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.grey,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(color: Colors.grey),
             ),
             const SizedBox(height: 8),
-            ...offlineDevices.map((device) => Card(
-                  child: ListTile(
-                    leading: Icon(Icons.devices, color: Colors.grey[400]),
-                    title: Text(device['name'] ?? 'Unknown',
-                        style: TextStyle(color: Colors.grey[600])),
-                    subtitle: Text('${device['platform']} \u00b7 Offline'),
+            ...offlineDevices.map(
+              (device) => Card(
+                child: ListTile(
+                  leading: Icon(Icons.devices, color: Colors.grey[400]),
+                  title: Text(
+                    device['name'] ?? 'Unknown',
+                    style: TextStyle(color: Colors.grey[600]),
                   ),
-                )),
+                  subtitle: Text('${device['platform']} \u00b7 Offline'),
+                ),
+              ),
+            ),
           ],
 
           if (onlineDevices.isEmpty && offlineDevices.isEmpty)
@@ -803,7 +811,11 @@ class _LanTabState extends State<_LanTab> {
       if (!mounted) return;
       setState(() => _receivedFile = fileName);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Received: $fileName (${formatFileSize(fileSize)}) — saved to $savePath')),
+        SnackBar(
+          content: Text(
+            'Received: $fileName (${formatFileSize(fileSize)}) — saved to $savePath',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -861,9 +873,9 @@ class _LanTabState extends State<_LanTab> {
     } catch (e) {
       setState(() => _sending = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Send failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Send failed: $e')));
     }
   }
 
@@ -916,8 +928,10 @@ class _LanTabState extends State<_LanTab> {
                 children: [
                   const Icon(Icons.info_outline, size: 20),
                   const SizedBox(width: 8),
-                  Text('Your IP: ${_lanService.localIp}',
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    'Your IP: ${_lanService.localIp}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const Spacer(),
                   if (_lanService.isReceiving)
                     const Chip(
@@ -983,18 +997,20 @@ class _LanTabState extends State<_LanTab> {
               ),
             ),
           ),
-        ...devices.map((device) => Card(
-              child: ListTile(
-                leading: const Icon(Icons.computer, color: Colors.blue),
-                title: Text(device.name),
-                subtitle: Text('${device.platform} \u00b7 ${device.ip}'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () => _sendToDevice(device),
-                  tooltip: 'Send file',
-                ),
+        ...devices.map(
+          (device) => Card(
+            child: ListTile(
+              leading: const Icon(Icons.computer, color: Colors.blue),
+              title: Text(device.name),
+              subtitle: Text('${device.platform} \u00b7 ${device.ip}'),
+              trailing: IconButton(
+                icon: const Icon(Icons.send),
+                onPressed: () => _sendToDevice(device),
+                tooltip: 'Send file',
               ),
-            )),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -1028,11 +1044,13 @@ class _BluetoothTabState extends State<_BluetoothTab> {
     if (mounted) setState(() {});
   }
 
-  void _onFileReceived(String fileName, int fileSize, Uint8List data) async {
+  void _onFileReceived(String fileName, int fileSize, String filePath) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final savePath = '${dir.path}/$fileName';
-      await File(savePath).writeAsBytes(data);
+      final source = File(filePath);
+      await source.copy(savePath);
+      await source.delete().catchError((_) => source);
       if (!mounted) return;
       setState(() => _receivedFile = fileName);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1057,9 +1075,9 @@ class _BluetoothTabState extends State<_BluetoothTab> {
     } else {
       final err = await _bleService.startAdvertising();
       if (err != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(err)));
       }
     }
   }
@@ -1095,9 +1113,9 @@ class _BluetoothTabState extends State<_BluetoothTab> {
 
       if (!mounted) return;
       if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Sent ${file.name} to ${device.name}')),
@@ -1106,9 +1124,9 @@ class _BluetoothTabState extends State<_BluetoothTab> {
     } catch (e) {
       setState(() => _sending = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Send failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Send failed: $e')));
     }
   }
 
@@ -1122,6 +1140,19 @@ class _BluetoothTabState extends State<_BluetoothTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (_bleService.isAdapterStateLoading) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Checking Bluetooth status...'),
+          ],
+        ),
+      );
+    }
+
     if (!_bleService.isAdapterOn) {
       return const Center(
         child: Column(
@@ -1237,28 +1268,40 @@ class _BluetoothTabState extends State<_BluetoothTab> {
           ),
           const SizedBox(height: 8),
         ],
-        Row(
-          children: [
-            Expanded(
+        if (_bleService.platformLimitation != null)
+          Card(
+            color: Colors.amber[50],
+            child: Padding(
+              padding: const EdgeInsets.all(12),
               child: Text(
-                'Nearby Devices',
-                style: Theme.of(context).textTheme.titleSmall,
+                _bleService.platformLimitation!,
+                style: const TextStyle(color: Colors.black87, fontSize: 13),
               ),
             ),
-            if (_bleService.isScanning)
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              FilledButton.icon(
-                onPressed: _bleService.startScan,
-                icon: const Icon(Icons.bluetooth_searching, size: 18),
-                label: const Text('Scan'),
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Nearby Devices',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
               ),
-          ],
-        ),
+              if (_bleService.isScanning)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                FilledButton.icon(
+                  onPressed: _bleService.startScan,
+                  icon: const Icon(Icons.bluetooth_searching, size: 18),
+                  label: const Text('Scan'),
+                ),
+            ],
+          ),
         const SizedBox(height: 8),
         if (_bleService.error != null)
           Card(
@@ -1271,7 +1314,9 @@ class _BluetoothTabState extends State<_BluetoothTab> {
               ),
             ),
           ),
-        if (_bleService.devices.isEmpty && !_bleService.isScanning)
+        if (_bleService.canScanAndSend &&
+            _bleService.devices.isEmpty &&
+            !_bleService.isScanning)
           const Card(
             child: Padding(
               padding: EdgeInsets.all(32),
@@ -1290,17 +1335,19 @@ class _BluetoothTabState extends State<_BluetoothTab> {
               ),
             ),
           ),
-        ..._bleService.devices.map((device) => Card(
-              child: ListTile(
-                leading: const Icon(Icons.bluetooth, color: Colors.blue),
-                title: Text(device.name),
-                trailing: IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () => _sendToDevice(device),
-                  tooltip: 'Send file via Bluetooth',
-                ),
+        ..._bleService.devices.map(
+          (device) => Card(
+            child: ListTile(
+              leading: const Icon(Icons.bluetooth, color: Colors.blue),
+              title: Text(device.name),
+              trailing: IconButton(
+                icon: const Icon(Icons.send),
+                onPressed: () => _sendToDevice(device),
+                tooltip: 'Send file via Bluetooth',
               ),
-            )),
+            ),
+          ),
+        ),
       ],
     );
   }

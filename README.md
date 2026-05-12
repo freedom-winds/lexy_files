@@ -16,11 +16,13 @@ static bundle.
 | Registered account flows | Yes | Yes | Yes | Yes |
 | Same-account relay | Yes | Yes | Yes | Yes |
 | LAN transfer | Not required | No | Yes | Yes |
-| Bluetooth transfer | Not required | No | Yes | Yes |
+| Bluetooth transfer | Not required | No | Yes | Partial |
 | Admin console | Yes | Yes | No | No |
 
-Web intentionally does not claim native LAN or Bluetooth. Mobile and Desktop
-are the supported LAN/Bluetooth clients.
+Web intentionally does not claim native LAN or Bluetooth. Mobile is the fully
+supported Bluetooth sender/receiver. Desktop supports LAN; Windows Bluetooth
+state detection and receive mode are present, but direct Windows Bluetooth send
+is gated until a native BLE central implementation is added and device-tested.
 
 ## Project Layout
 

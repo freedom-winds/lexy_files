@@ -43,7 +43,8 @@ Use `https://files.example.com` or the target production domain.
 | Same-account relay request/accept/send | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | Relay reject/cancel/offline failure states | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | LAN discovery and file send | N/A | N/A | [ ] | [ ] | [ ] | [ ] |
-| Bluetooth discovery and file send | N/A | N/A | [ ] | [ ] | [ ] | [ ] |
+| Bluetooth discovery and file send | N/A | N/A | [ ] | [ ] | N/A | [ ] |
+| Windows Bluetooth receive/status | N/A | N/A | N/A | N/A | [ ] | N/A |
 | Admin users/files/groups/stats | [ ] | [ ] | N/A | N/A | N/A | N/A |
 
 ## Security Gate

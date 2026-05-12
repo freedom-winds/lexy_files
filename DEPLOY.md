@@ -15,11 +15,13 @@ Production baseline: one HTTPS domain behind Nginx, for example
 | Anonymous upload/download | Yes | Yes | Yes | Yes |
 | Same-account relay | Yes | Yes | Yes | Yes |
 | LAN transfer | API not required | Not supported | Yes | Yes |
-| Bluetooth transfer | API not required | Not supported | Yes | Yes |
+| Bluetooth transfer | API not required | Not supported | Yes | Partial |
 | Admin console | Yes | Yes | No | No |
 
-Web does not claim native LAN or Bluetooth support. Mobile/Desktop are the
-supported clients for local-network and Bluetooth transfer.
+Web does not claim native LAN or Bluetooth support. Mobile is the fully
+supported Bluetooth sender/receiver. Desktop supports LAN; Windows Bluetooth
+state detection and receive mode are present, but direct Windows Bluetooth send
+is gated until a native BLE central implementation is added and device-tested.
 
 ## 1. Backend
 
@@ -252,8 +254,8 @@ server {
 ## Release Gate
 
 Before publishing, all automated checks in `docs/release-checklist.md` must pass
-and the manual matrix must be completed on real devices for relay, LAN, and
-Bluetooth.
+and the manual matrix must be completed on real devices for relay, LAN, and the
+supported Bluetooth paths.
 
 ## Rollback
 
