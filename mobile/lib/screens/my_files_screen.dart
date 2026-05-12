@@ -5,6 +5,7 @@ import '../config/theme.dart';
 import '../models/file_info.dart';
 import '../services/api_service.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/common_cards.dart';
 import '../widgets/file_size_text.dart';
 
 class MyFilesScreen extends StatefulWidget {
@@ -103,40 +104,25 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My files'),
+        title: const Text('Files'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
             onPressed: _fetchFiles,
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const LoadingState()
           : _error != null
-          ? _buildError()
+          ? ErrorState(message: _error!, onRetry: _fetchFiles)
           : _files.isEmpty
-          ? AppEmptyState(
-              icon: Icons.folder_open_rounded,
-              title: 'No files yet',
-              subtitle: 'Uploaded files and pickup codes will appear here.',
-              action: FilledButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Upload from home'),
-              ),
+          ? const AppEmptyState(
+              icon: Icons.folder_open,
+              title: 'No files',
+              subtitle: 'Upload files from Home',
             )
           : _buildFileList(),
-    );
-  }
-
-  Widget _buildError() {
-    return AppEmptyState(
-      icon: Icons.error_outline,
-      title: 'Could not load files',
-      subtitle: _error!,
-      action: FilledButton(onPressed: _fetchFiles, child: const Text('Retry')),
     );
   }
 

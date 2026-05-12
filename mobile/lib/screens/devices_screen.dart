@@ -6,6 +6,7 @@ import '../config/theme.dart';
 import '../services/api_service.dart';
 import '../services/device_presence_service.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/common_cards.dart';
 
 class DevicesScreen extends StatefulWidget {
   const DevicesScreen({super.key});

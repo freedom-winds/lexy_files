@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/file_info.dart';
 import '../providers/auth_provider.dart';
+import '../providers/navigation_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/file_size_text.dart';
@@ -421,6 +422,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions() {
+    final nav = context.read<NavigationProvider>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -433,25 +435,25 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         AppActionTile(
           icon: Icons.file_copy_outlined,
-          title: 'My files',
-          subtitle: 'Manage uploads and pickup codes',
-          onTap: () => Navigator.of(context).pushNamed('/my-files'),
+          title: 'Files',
+          subtitle: 'Manage uploads',
+          onTap: nav.navigateToFiles,
         ),
         const SizedBox(height: 8),
         AppActionTile(
           icon: Icons.devices_rounded,
           title: 'Devices',
-          subtitle: 'See online devices and sessions',
+          subtitle: 'Online devices',
           color: AppTheme.success,
-          onTap: () => Navigator.of(context).pushNamed('/devices'),
+          onTap: nav.navigateToDevices,
         ),
         const SizedBox(height: 8),
         AppActionTile(
           icon: Icons.swap_horiz_rounded,
           title: 'Transfer',
-          subtitle: 'Relay, LAN, and Bluetooth modes',
+          subtitle: 'Relay, LAN, Bluetooth',
           color: AppTheme.accent,
-          onTap: () => Navigator.of(context).pushNamed('/transfer'),
+          onTap: nav.navigateToTransfer,
         ),
       ],
     );

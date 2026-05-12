@@ -6,13 +6,11 @@ import 'config/theme.dart';
 import 'services/api_service.dart';
 import 'services/device_presence_service.dart';
 import 'providers/auth_provider.dart';
+import 'providers/navigation_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/home_screen.dart';
 import 'screens/pickup_screen.dart';
-import 'screens/my_files_screen.dart';
-import 'screens/devices_screen.dart';
-import 'screens/transfer_screen.dart';
+import 'widgets/app_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +26,9 @@ void main() {
         ),
         ChangeNotifierProvider<AuthProvider>(
           create: (_) => AuthProvider(apiService),
+        ),
+        ChangeNotifierProvider<NavigationProvider>(
+          create: (_) => NavigationProvider(),
         ),
       ],
       child: const _PresenceController(child: LexyFilesApp()),
@@ -51,17 +52,11 @@ class LexyFilesApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => const LoginScreen());
           case '/register':
             return MaterialPageRoute(builder: (_) => const RegisterScreen());
-          case '/my-files':
-            return MaterialPageRoute(builder: (_) => const MyFilesScreen());
-          case '/devices':
-            return MaterialPageRoute(builder: (_) => const DevicesScreen());
-          case '/transfer':
-            return MaterialPageRoute(builder: (_) => const TransferScreen());
           case '/pickup':
             final code = settings.arguments as String;
             return MaterialPageRoute(builder: (_) => PickupScreen(code: code));
           default:
-            return MaterialPageRoute(builder: (_) => const HomeScreen());
+            return MaterialPageRoute(builder: (_) => const AppShell());
         }
       },
     );
@@ -79,7 +74,7 @@ class _AuthGate extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return const HomeScreen();
+    return const AppShell();
   }
 }
 
