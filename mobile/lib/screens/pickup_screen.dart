@@ -91,156 +91,197 @@ class _PickupScreenState extends State<PickupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.code)),
+      backgroundColor: AppTheme.bgPage,
+      appBar: AppBar(
+        backgroundColor: AppTheme.bgPage,
+        title: Text(widget.code,
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              letterSpacing: 4,
+            )),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-          ? AppEmptyState(
-              icon: Icons.search_off_rounded,
-              title: 'File not found',
-              subtitle: _error!,
-              action: FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Back'),
-              ),
-            )
-          : _file != null
-          ? _buildFileInfo()
-          : const SizedBox.shrink(),
+              ? AppEmptyState(
+                  icon: Icons.search_off_rounded,
+                  title: 'File not found',
+                  subtitle: _error!,
+                  action: CyanButton(
+                    label: 'Back',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                )
+              : _file != null
+                  ? _buildFileInfo()
+                  : const SizedBox.shrink(),
     );
   }
 
   Widget _buildFileInfo() {
     final file = _file!;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryDark,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const AppIconBadge(
-                icon: Icons.download_done_rounded,
-                color: Colors.white,
-                background: Color(0x3327D7C7),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
+              // ── Hero code ────────────────────────────────────────────
+              HeroSurface(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Pickup ready',
+                      'Pickup code',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
+                        color: AppTheme.text2,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.4,
                       ),
                     ),
-                    Text(
+                    const SizedBox(height: 8),
+                    SelectableText(
                       widget.code,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
-                        color: Color(0xCCFFFFFF),
+                        color: AppTheme.accentColor,
                         fontFamily: 'monospace',
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    const AppIconBadge(icon: Icons.insert_drive_file_rounded),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            file.originalFilename,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            '${formatFileSize(file.fileSize)} - ${file.mimeType}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
-                            ),
+                        fontSize: 52,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 10,
+                        height: 1.0,
+                        shadows: [
+                          Shadow(
+                            color: Color(0x6600F0FF),
+                            blurRadius: 24,
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatTile(
-                        icon: Icons.schedule,
-                        label: 'Expires',
-                        value: formatRelativeDate(file.expiresAt),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _StatTile(
-                        icon: Icons.download,
-                        label: 'Downloads',
-                        value:
-                            '${file.downloadCount}${file.maxDownloads != null ? ' / ${file.maxDownloads}' : ''}',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                if (_downloading) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ),
+              const SizedBox(height: 14),
+              // ── File detail card ─────────────────────────────────────
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Downloading',
-                        style: TextStyle(color: AppTheme.textSecondary),
+                      Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppTheme.accentColor
+                                  .withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppTheme.accentColor
+                                    .withValues(alpha: 0.30),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.insert_drive_file_rounded,
+                              color: AppTheme.accentColor,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  file.originalFilename,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: AppTheme.text1,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${formatFileSize(file.fileSize)} • ${file.mimeType}',
+                                  style: const TextStyle(
+                                    color: AppTheme.text2,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      Text('${(_downloadProgress * 100).toInt()}%'),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatTile(
+                              icon: Icons.schedule_rounded,
+                              label: 'Expires',
+                              value: formatRelativeDate(file.expiresAt),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _StatTile(
+                              icon: Icons.download_rounded,
+                              label: 'Downloads',
+                              value:
+                                  '${file.downloadCount}${file.maxDownloads != null ? ' / ${file.maxDownloads}' : ''}',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      if (_downloading) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Downloading',
+                              style: TextStyle(color: AppTheme.text2),
+                            ),
+                            Text(
+                              '${(_downloadProgress * 100).toInt()}%',
+                              style: const TextStyle(
+                                color: AppTheme.accentColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: _downloadProgress,
+                            minHeight: 8,
+                          ),
+                        ),
+                      ] else
+                        CyanButton(
+                          label: 'Download file',
+                          icon: Icons.download_rounded,
+                          expanded: true,
+                          onPressed: _downloadFile,
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: _downloadProgress,
-                    minHeight: 7,
-                  ),
-                ] else
-                  FilledButton.icon(
-                    onPressed: _downloadFile,
-                    icon: const Icon(Icons.download_rounded),
-                    label: const Text('Download file'),
-                  ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -261,32 +302,33 @@ class _StatTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceMuted,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.border),
+        color: AppTheme.surface2,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        border: Border.all(color: AppTheme.borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: AppTheme.textSecondary),
+              Icon(icon, size: 14, color: AppTheme.text2),
               const SizedBox(width: 5),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppTheme.textSecondary,
-                ),
+                style: const TextStyle(fontSize: 11, color: AppTheme.text2),
               ),
             ],
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 6),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+              color: AppTheme.text1,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

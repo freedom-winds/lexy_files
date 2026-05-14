@@ -1,0 +1,164 @@
+
+========== home.png ==========
+size 1623x1061
+sidebar width = None ; sidebar bg = #122131
+
+Sidebar palette (full):
+  #102030  x8124
+  #101020  x329
+  #00F0F0  x319
+  #103040  x308
+  #101010  x93
+  #B0C0C0  x87
+
+Hero zone palette:
+  #001020  x11476
+  #102030  x5499
+  #00F0F0  x610
+  #103040  x555
+  #D0E0F0  x205
+  #203040  x117
+
+Content zone palette:
+  #102030  x16229
+  #001020  x8798
+
+Edges on row 200 (hero):
+
+Edges on row 50 (top bar):
+  x= 409  #122131 -> #6B7280
+  x= 410  #6B7280 -> #1D2B3B
+  x=1453  #051424 -> #495862
+  x=1454  #495862 -> #A3B3B6
+  x=1458  #A3B3B6 -> #1B2A39
+  x=1581  #051424 -> #32414E
+  x=1582  #32414E -> #A3B3B6
+  x=1594  #B9CACB -> #8C9DA1
+  x=1595  #8C9DA1 -> #1B2A39
+
+========== transfer.png ==========
+size 1585x1067
+sidebar width = 312 ; sidebar bg = #122131
+content bg right of sidebar = #3B494B
+
+Sidebar palette (full):
+  #102030  x29165
+  #001020  x4984
+  #103040  x1177
+  #00F0F0  x1124
+  #B0C0C0  x77
+  #006070  x52
+
+Hero zone palette:
+  #001020  x15131
+  #D0E0F0  x126
+
+Content zone palette:
+  #001020  x20754
+  #002030  x411
+
+Edges on row 200 (hero):
+
+Edges on row 50 (top bar):
+  x=  27  #122131 -> #0895A4
+  x=  28  #0895A4 -> #00F0FF
+  x=  59  #02D6E5 -> #103B4A
+  x=  74  #122131 -> #04BCCB
+  x=  75  #04BCCB -> #00F0FF
+  x=  77  #00F0FF -> #103A4A
+  x= 133  #122131 -> #02D6E6
+  x= 136  #00F0FF -> #122131
+  x= 153  #103B4B -> #00F0FF
+  x= 155  #00F0FF -> #07A2B1
+  x= 156  #07A2B1 -> #122131
+
+========== devices.png ==========
+size 1448x1149
+sidebar width = 338 ; sidebar bg = #122131
+content bg right of sidebar = #0D7180
+
+Sidebar palette (full):
+  #102030  x34444
+  #001020  x5692
+  #103040  x1183
+  #00F0F0  x1029
+  #102020  x83
+  #B0C0C0  x83
+  #D0E0F0  x68
+  #006070  x51
+
+Hero zone palette:
+  #001020  x8936
+  #102030  x3636
+  #103040  x398
+  #D0E0F0  x108
+
+Content zone palette:
+  #102030  x10388
+  #001020  x10262
+
+Edges on row 200 (hero):
+
+Edges on row 50 (top bar):
+  x= 102  #2A394A -> #D4E4FA
+  x= 105  #D4E4FA -> #5B6A7C
+  x= 106  #5B6A7C -> #122131
+  x= 166  #122131 -> #5B6A7C
+  x= 167  #5B6A7C -> #D4E4FA
+  x= 179  #D4E4FA -> #5B6A7C
+  x= 180  #5B6A7C -> #122131
+  x= 181  #122131 -> #5B6A7C
+  x= 182  #5B6A7C -> #D4E4FA
+  x= 185  #D4E4FA -> #425163
+  x= 186  #425163 -> #122131
+  x= 188  #122131 -> #8B9BAE
+  x= 189  #8B9BAE -> #D4E4FA
+  x= 191  #D4E4FA -> #A3B3C7
+  x= 192  #A3B3C7 -> #122131
+
+========== files.png ==========
+size 1553x1025
+sidebar width = None ; sidebar bg = #122131
+
+Sidebar palette (full):
+  #102030  x8316
+  #00F0F0  x270
+  #103040  x238
+  #00E0F0  x78
+
+Hero zone palette:
+  #001020  x10370
+  #102030  x4194
+  #203040  x2322
+  #00F0F0  x345
+  #103040  x295
+  #204050  x209
+
+Content zone palette:
+  #001020  x13660
+  #102030  x8882
+  #203040  x479
+
+Edges on row 200 (hero):
+
+Edges on row 50 (top bar):
+  x=  16  #122131 -> #00EBF9
+  x=  25  #01D9E7 -> #006970
+  x=  33  #006970 -> #0098A2
+  x=  36  #01BFCA -> #00E5F4
+  x=  37  #00E5F4 -> #00ADB9
+  x=  39  #00A7B1 -> #007980
+  x=  42  #006970 -> #0097A0
+  x=  43  #0097A0 -> #00E2F0
+  x=  51  #00E1EF -> #098090
+  x=  52  #098090 -> #122131
+  x=  67  #122131 -> #04BCCB
+  x=  68  #04BCCB -> #00F0FF
+  x=  76  #00F0FF -> #103A4A
+  x=  79  #0F3B4B -> #02D6E5
+  x=  85  #00F0FF -> #0895A5
+  x=  86  #0895A5 -> #112E3E
+  x=  88  #122131 -> #088897
+  x=  89  #088897 -> #00F0FF
+  x=  91  #00F0FF -> #0B6E7E
+  x=  92  #0B6E7E -> #122131

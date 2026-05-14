@@ -1,0 +1,1 @@
+s=open(__file__.replace("_write_deep","_deep_src")).read(); open(__file__.replace("_write_deep","_deep_probe"),"w",encoding="utf-8").write(s)

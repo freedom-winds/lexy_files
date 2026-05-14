@@ -7,11 +7,14 @@ import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import '../config/theme.dart';
+import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/websocket_service.dart';
 import '../services/lan_service.dart';
 import '../services/bluetooth_service.dart';
 import '../models/transfer.dart';
+import '../widgets/app_ui.dart';
 import '../widgets/file_size_text.dart';
 
 class TransferScreen extends StatefulWidget {
@@ -40,21 +43,118 @@ class _TransferScreenState extends State<TransferScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Transfer'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.cloud_sync), text: 'Relay'),
-            Tab(icon: Icon(Icons.wifi), text: 'LAN'),
-            Tab(icon: Icon(Icons.bluetooth), text: 'Bluetooth'),
-          ],
+      backgroundColor: AppTheme.bgPage,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _TransferHeader(),
+                const SizedBox(height: 18),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface2,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                    border: Border.all(color: AppTheme.borderSubtle),
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: AppTheme.accentColor,
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.radiusPill),
+                      boxShadow: AppTheme.accentGlow(alpha: 0.30),
+                    ),
+                    labelColor: AppTheme.bgDeep,
+                    unselectedLabelColor: AppTheme.text2,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(
+                        height: 40,
+                        child: _TabLabel(
+                          icon: Icons.cloud_sync_rounded,
+                          label: 'Relay',
+                        ),
+                      ),
+                      Tab(
+                        height: 40,
+                        child: _TabLabel(
+                          icon: Icons.wifi_rounded,
+                          label: 'LAN',
+                        ),
+                      ),
+                      Tab(
+                        height: 40,
+                        child: _TabLabel(
+                          icon: Icons.bluetooth_rounded,
+                          label: 'Bluetooth',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: const [_RelayTab(), _LanTab(), _BluetoothTab()],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [_RelayTab(), _LanTab(), _BluetoothTab()],
-      ),
+    );
+  }
+}
+
+class _TransferHeader extends StatelessWidget {
+  const _TransferHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Transfer',
+          style: TextStyle(
+            color: AppTheme.text1,
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'Send files via account relay, local network or Bluetooth.',
+          style: TextStyle(color: AppTheme.text2, fontSize: 13),
+        ),
+      ],
+    );
+  }
+}
+
+class _TabLabel extends StatelessWidget {
+  const _TabLabel({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 16),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+      ],
     );
   }
 }
@@ -111,6 +211,16 @@ class _RelayTabState extends State<_RelayTab> {
   }
 
   Future<void> _init() async {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuthenticated) {
+      setState(() {
+        _loading = false;
+        _error = null;
+        _devices = [];
+      });
+      return;
+    }
+
     final api = context.read<ApiService>();
     try {
       await _loadDeviceId();
@@ -492,20 +602,31 @@ class _RelayTabState extends State<_RelayTab> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(_error!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: _fetchDevices, child: const Text('Retry')),
-          ],
+    if (!auth.isAuthenticated) {
+      return AppEmptyState(
+        icon: Icons.lock_outline_rounded,
+        title: 'Sign in to use device transfer',
+        subtitle:
+            'Same-account relay needs you to be signed in so your devices can find each other.',
+        action: CyanButton(
+          label: 'Sign in',
+          onPressed: () => Navigator.of(context).pushNamed('/login'),
         ),
+      );
+    }
+
+    if (_error != null) {
+      return AppEmptyState(
+        icon: Icons.error_outline_rounded,
+        title: 'Could not load devices',
+        subtitle: _error!,
+        action: CyanButton(label: 'Retry', onPressed: _fetchDevices),
       );
     }
 

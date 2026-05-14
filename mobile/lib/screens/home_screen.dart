@@ -10,6 +10,15 @@ import '../services/api_service.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/file_size_text.dart';
 
+/// Home screen.
+///
+/// Visually mirrors the Windows reference (`design/windows/home.png`):
+///   • Page title and account chip in a top bar
+///   • Large hero pickup-code card with cyan primary action
+///   • A second card below for "Receive by code"
+///   • Quick-action tiles for authenticated users
+///
+/// All API calls are unchanged.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -106,283 +115,543 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = context.watch<AuthProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lexy Files'),
-        actions: [
-          if (auth.isAuthenticated)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.account_circle_outlined),
-              onSelected: (v) {
-                if (v == 'logout') auth.logout();
-              },
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  enabled: false,
-                  child: Text(
-                    auth.user?.username ?? 'User',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const PopupMenuDivider(),
-                const PopupMenuItem(value: 'logout', child: Text('Sign out')),
-              ],
-            )
-          else ...[
-            TextButton(
-              onPressed: () => Navigator.of(context).pushNamed('/login'),
-              child: const Text('Sign in'),
-            ),
-            const SizedBox(width: 4),
-          ],
-        ],
-      ),
+      backgroundColor: AppTheme.bgPage,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            _buildHeader(auth),
-            const SizedBox(height: 16),
-            _buildUploadPanel(),
-            const SizedBox(height: 12),
-            _buildPickupPanel(),
-            if (auth.isAuthenticated) ...[
-              const SizedBox(height: 16),
-              _buildQuickActions(),
-            ] else ...[
-              const SizedBox(height: 14),
-              _buildAuthPrompt(),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(AuthProvider auth) {
-    return HeroSurface(
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(50),
-              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            ),
-            child: const Icon(
-              Icons.folder_shared_rounded,
-              color: Colors.white,
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  auth.isAuthenticated
-                      ? 'Welcome back, ${auth.user?.username ?? 'user'}'
-                      : 'Send files instantly',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
+                _TopBar(auth: auth),
+                const SizedBox(height: 24),
+                _PickupHeroCard(
+                  isUploading: _isUploading,
+                  progress: _uploadProgress,
+                  result: _uploadResult,
+                  error: _uploadError,
+                  copied: _copied,
+                  onPickFile: _pickAndUpload,
+                  onCopy: _copyCode,
+                  onReset: _resetUpload,
+                ),
+                const SizedBox(height: 18),
+                _ReceiveCard(
+                  controller: _pickupCodeController,
+                  onSubmit: _goToPickup,
+                ),
+                const SizedBox(height: 22),
+                if (auth.isAuthenticated)
+                  _QuickActions()
+                else
+                  _AuthPrompt(
+                    onSignIn: () =>
+                        Navigator.of(context).pushNamed('/login'),
+                    onCreate: () =>
+                        Navigator.of(context).pushNamed('/register'),
                   ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Share with a pickup code, any device.',
-                  style: TextStyle(color: Color(0xE6FFFFFF), fontSize: 13),
-                ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUploadPanel() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Row(
-              children: [
-                AppIconBadge(icon: Icons.upload_file_rounded),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Send a file',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Upload and share a pickup code.',
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_uploadResult != null)
-              _buildUploadSuccess()
-            else
-              _buildUploadArea(),
-          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildUploadArea() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+// ── Top bar (page title + account chip) ───────────────────────────────────
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.auth});
+  final AuthProvider auth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      alignment: WrapAlignment.spaceBetween,
+      spacing: 12,
+      runSpacing: 12,
       children: [
-        if (_uploadError != null) ...[
-          _InlineNotice(
-            icon: Icons.error_outline,
-            text: _uploadError!,
-            color: AppTheme.error,
-          ),
-          const SizedBox(height: 12),
-        ],
-        if (_isUploading) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        const SizedBox(
+          width: 480,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Uploading',
-                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-              ),
               Text(
-                '${(_uploadProgress * 100).toInt()}%',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
+                'Home',
+                style: TextStyle(
+                  color: AppTheme.text1,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
                 ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Send a file. Share a pickup code. Done.',
+                style: TextStyle(color: AppTheme.text2, fontSize: 13),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(value: _uploadProgress, minHeight: 7),
-        ] else ...[
-          FilledButton.icon(
-            onPressed: _pickAndUpload,
-            icon: const Icon(Icons.attach_file),
-            label: const Text('Choose file'),
+        ),
+        if (auth.isAuthenticated)
+          PopupMenuButton<String>(
+            tooltip: auth.user?.username ?? 'Account',
+            onSelected: (v) {
+              if (v == 'logout') auth.logout();
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                enabled: false,
+                child: Text(
+                  auth.user?.username ?? 'User',
+                  style: const TextStyle(
+                    color: AppTheme.text1,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(value: 'logout', child: Text('Sign out')),
+            ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                border: Border.all(color: AppTheme.borderSubtle),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentColor.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      size: 16,
+                      color: AppTheme.accentColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    auth.user?.username ?? 'Account',
+                    style: const TextStyle(
+                      color: AppTheme.text1,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.expand_more_rounded,
+                    color: AppTheme.text2,
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Row(
+            children: [
+              TextButton(
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/login'),
+                child: const Text('Sign in'),
+              ),
+              const SizedBox(width: 6),
+              CyanButton(
+                label: 'Create account',
+                dense: true,
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/register'),
+              ),
+            ],
           ),
-        ],
       ],
     );
   }
+}
 
-  Widget _buildUploadSuccess() {
-    final result = _uploadResult!;
+// ── Pickup hero card ───────────────────────────────────────────────────────
+
+class _PickupHeroCard extends StatelessWidget {
+  const _PickupHeroCard({
+    required this.isUploading,
+    required this.progress,
+    required this.result,
+    required this.error,
+    required this.copied,
+    required this.onPickFile,
+    required this.onCopy,
+    required this.onReset,
+  });
+
+  final bool isUploading;
+  final double progress;
+  final UploadResult? result;
+  final String? error;
+  final bool copied;
+  final VoidCallback onPickFile;
+  final void Function(String) onCopy;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    return HeroSurface(
+      padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentColor.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.flash_on_rounded,
+                      size: 14,
+                      color: AppTheme.accentColor,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Quick send',
+                      style: TextStyle(
+                        color: AppTheme.accentColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              if (result != null)
+                IconButton(
+                  tooltip: 'Send another',
+                  icon: const Icon(Icons.refresh_rounded),
+                  color: AppTheme.text2,
+                  onPressed: onReset,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (result != null)
+            _PickupCodeBlock(
+              code: result!.pickupCode,
+              fileName: result!.filename,
+              fileSize: result!.fileSize,
+              copied: copied,
+              onCopy: () => onCopy(result!.pickupCode),
+            )
+          else if (isUploading)
+            _UploadingBlock(progress: progress)
+          else
+            _PickFileBlock(error: error, onPick: onPickFile),
+        ],
+      ),
+    );
+  }
+}
+
+class _PickFileBlock extends StatelessWidget {
+  const _PickFileBlock({required this.error, required this.onPick});
+  final String? error;
+  final VoidCallback onPick;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _InlineNotice(
-          icon: Icons.check_circle,
-          text: '${result.filename} - ${formatFileSize(result.fileSize)}',
-          color: AppTheme.success,
-        ),
-        const SizedBox(height: 14),
         const Text(
-          'Pickup code',
+          'Drop a file or pick one',
           style: TextStyle(
-            fontSize: 12,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text1,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'You will get a 6-character pickup code to share.',
+          style: TextStyle(color: AppTheme.text2, fontSize: 13),
+        ),
+        const SizedBox(height: 22),
+        if (error != null) ...[
+          _InlineNotice(
+            icon: Icons.error_outline_rounded,
+            text: error!,
+            color: AppTheme.error,
+          ),
+          const SizedBox(height: 14),
+        ],
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 24),
+          decoration: BoxDecoration(
+            color: AppTheme.bgDeep,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            border: Border.all(
+              color: AppTheme.accentColor.withValues(alpha: 0.30),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: AppTheme.accentGlow(alpha: 0.30),
+                ),
+                child: const Icon(
+                  Icons.cloud_upload_rounded,
+                  color: AppTheme.bgDeep,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Choose a file to upload',
+                style: TextStyle(
+                  color: AppTheme.text1,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Documents, images, archives — up to your plan limit.',
+                style: TextStyle(color: AppTheme.text2, fontSize: 12),
+              ),
+              const SizedBox(height: 18),
+              CyanButton(
+                label: 'Choose file',
+                icon: Icons.attach_file_rounded,
+                onPressed: onPick,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UploadingBlock extends StatelessWidget {
+  const _UploadingBlock({required this.progress});
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Uploading…',
+          style: TextStyle(
+            color: AppTheme.text1,
+            fontSize: 22,
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
-          decoration: BoxDecoration(
-            color: AppTheme.primarySubtle,
-            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  result.pickupCode,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.primaryColor,
-                    letterSpacing: 6,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => _copyCode(result.pickupCode),
-                icon: Icon(
-                  _copied ? Icons.check_rounded : Icons.copy_rounded,
-                  color: AppTheme.primaryColor,
-                ),
-                tooltip: _copied ? 'Copied' : 'Copy',
-              ),
-            ],
-          ),
+        const SizedBox(height: 14),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(value: progress, minHeight: 10),
         ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: _resetUpload,
-          icon: const Icon(Icons.add),
-          label: const Text('Send another file'),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '${(progress * 100).toInt()}%',
+            style: const TextStyle(
+              color: AppTheme.accentColor,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildPickupPanel() {
+class _PickupCodeBlock extends StatelessWidget {
+  const _PickupCodeBlock({
+    required this.code,
+    required this.fileName,
+    required this.fileSize,
+    required this.copied,
+    required this.onCopy,
+  });
+
+  final String code;
+  final String fileName;
+  final int fileSize;
+  final bool copied;
+  final VoidCallback onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Your pickup code',
+          style: TextStyle(
+            color: AppTheme.text2,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.4,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Big code display
+        Center(
+          child: SelectableText(
+            code,
+            style: const TextStyle(
+              color: AppTheme.accentColor,
+              fontFamily: 'monospace',
+              fontSize: 64,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 12,
+              height: 1.0,
+              shadows: [
+                Shadow(
+                  color: Color(0x6600F0FF),
+                  blurRadius: 28,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.bgDeep,
+              borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+              border: Border.all(color: AppTheme.borderSubtle),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.insert_drive_file_outlined,
+                  size: 14,
+                  color: AppTheme.text2,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  fileName,
+                  style: const TextStyle(
+                    color: AppTheme.text1,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.text3,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  formatFileSize(fileSize),
+                  style: const TextStyle(
+                    color: AppTheme.text2,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 22),
+        Center(
+          child: CyanButton(
+            label: copied ? 'Copied' : 'Copy code',
+            icon: copied ? Icons.check_rounded : Icons.copy_rounded,
+            onPressed: onCopy,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Receive by code card ──────────────────────────────────────────────────
+
+class _ReceiveCard extends StatelessWidget {
+  const _ReceiveCard({required this.controller, required this.onSubmit});
+
+  final TextEditingController controller;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Row(
+            Row(
               children: [
-                AppIconBadge(
+                const AppIconBadge(
                   icon: Icons.download_rounded,
-                  color: AppTheme.success,
+                  color: AppTheme.accentColor,
+                  useGradient: false,
+                  glow: false,
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: const [
                       Text(
                         'Receive by code',
                         style: TextStyle(
+                          color: AppTheme.text1,
                           fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       SizedBox(height: 2),
                       Text(
                         'Enter the 6-character pickup code.',
                         style: TextStyle(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2,
                           fontSize: 12,
                         ),
                       ),
@@ -391,13 +660,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _pickupCodeController,
-                    decoration: const InputDecoration(hintText: 'ABC123'),
+                    controller: controller,
+                    decoration: const InputDecoration(
+                      hintText: 'ABC123',
+                      prefixIcon: Icon(Icons.tag_rounded),
+                    ),
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
@@ -407,16 +679,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 18,
-                      letterSpacing: 4,
-                      fontWeight: FontWeight.w700,
+                      letterSpacing: 6,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.text1,
                     ),
-                    onSubmitted: (_) => _goToPickup(),
+                    onSubmitted: (_) => onSubmit(),
                   ),
                 ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _goToPickup,
-                  child: const Icon(Icons.arrow_forward),
+                const SizedBox(width: 10),
+                CyanButton(
+                  label: 'Pickup',
+                  icon: Icons.arrow_forward_rounded,
+                  onPressed: onSubmit,
                 ),
               ],
             ),
@@ -425,30 +699,29 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
 
-  Widget _buildQuickActions() {
+// ── Quick actions for signed-in users ─────────────────────────────────────
+
+class _QuickActions extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
     final nav = context.read<NavigationProvider>();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 2, bottom: 8),
-          child: Text(
-            'Workspace',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
-          ),
-        ),
+        const AppSectionHeader(title: 'Workspace'),
         AppActionTile(
-          icon: Icons.file_copy_outlined,
-          title: 'Files',
-          subtitle: 'Manage uploads',
+          icon: Icons.folder_rounded,
+          title: 'My Files',
+          subtitle: 'Manage your uploads & pickup codes',
           onTap: nav.navigateToFiles,
         ),
         const SizedBox(height: 8),
         AppActionTile(
           icon: Icons.devices_rounded,
           title: 'Devices',
-          subtitle: 'Online devices',
+          subtitle: 'See who is online and ready to receive',
           color: AppTheme.success,
           onTap: nav.navigateToDevices,
         ),
@@ -456,31 +729,92 @@ class _HomeScreenState extends State<HomeScreen> {
         AppActionTile(
           icon: Icons.swap_horiz_rounded,
           title: 'Transfer',
-          subtitle: 'Relay, LAN, Bluetooth',
-          color: AppTheme.accent,
+          subtitle: 'Direct send via relay, LAN or Bluetooth',
+          color: AppTheme.info,
           onTap: nav.navigateToTransfer,
         ),
       ],
     );
   }
+}
 
-  Widget _buildAuthPrompt() {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => Navigator.of(context).pushNamed('/register'),
-            child: const Text('Create account'),
-          ),
+class _AuthPrompt extends StatelessWidget {
+  const _AuthPrompt({required this.onSignIn, required this.onCreate});
+  final VoidCallback onSignIn;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 560;
+            final intro = Row(
+              children: const [
+                AppIconBadge(
+                  icon: Icons.lock_outline_rounded,
+                  color: AppTheme.info,
+                  useGradient: false,
+                ),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sign in to sync',
+                        style: TextStyle(
+                          color: AppTheme.text1,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Sync your devices, history and quotas across the cloud.',
+                        style: TextStyle(color: AppTheme.text2, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+
+            final actions = Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: onCreate,
+                  child: const Text('Create account'),
+                ),
+                CyanButton(label: 'Sign in', onPressed: onSignIn),
+              ],
+            );
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  intro,
+                  const SizedBox(height: 14),
+                  actions,
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: intro),
+                const SizedBox(width: 12),
+                actions,
+              ],
+            );
+          },
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: FilledButton(
-            onPressed: () => Navigator.of(context).pushNamed('/login'),
-            child: const Text('Sign in'),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -501,9 +835,9 @@ class _InlineNotice extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withAlpha(22),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withAlpha(45)),
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        border: Border.all(color: color.withValues(alpha: 0.40)),
       ),
       child: Row(
         children: [
@@ -515,7 +849,7 @@ class _InlineNotice extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

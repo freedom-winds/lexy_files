@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import 'app_ui.dart';
 import 'file_size_text.dart';
 
-/// Unified progress panel for all transfer modes
+/// Unified progress panel for all transfer modes.
 class TransferProgressPanel extends StatelessWidget {
   const TransferProgressPanel({
     super.key,
@@ -25,70 +26,79 @@ class TransferProgressPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(
-                  isSending ? Icons.upload : Icons.download,
-                  size: 18,
-                  color: AppTheme.primaryColor,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    fileName,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isSending
+                        ? Icons.upload_rounded
+                        : Icons.download_rounded,
+                    size: 18,
+                    color: AppTheme.accentColor,
                   ),
                 ),
-              ],
-            ),
-            if (targetName != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                '${isSending ? 'To' : 'From'}: $targetName',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textSecondary,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        fileName,
+                        style: const TextStyle(
+                          color: AppTheme.text1,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (targetName != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '${isSending ? 'To' : 'From'}: $targetName',
+                          style: const TextStyle(
+                            color: AppTheme.text2,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: progress / 100,
-              backgroundColor: AppTheme.border,
-              valueColor: const AlwaysStoppedAnimation(AppTheme.primaryColor),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (bytesTransferred != null && totalBytes != null)
-                  Text(
-                    '${formatFileSize(bytesTransferred!)} / ${formatFileSize(totalBytes!)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textSecondary,
-                    ),
-                  )
-                else
-                  const SizedBox.shrink(),
                 Text(
                   '${progress.toInt()}%',
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.accentColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress / 100,
+                minHeight: 8,
+              ),
+            ),
+            if (bytesTransferred != null && totalBytes != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                '${formatFileSize(bytesTransferred!)} / ${formatFileSize(totalBytes!)}',
+                style: const TextStyle(color: AppTheme.text2, fontSize: 12),
+              ),
+            ],
           ],
         ),
       ),
@@ -96,7 +106,7 @@ class TransferProgressPanel extends StatelessWidget {
   }
 }
 
-/// Unified device card for selecting transfer targets
+/// Unified device card for selecting transfer targets.
 class DeviceTargetCard extends StatelessWidget {
   const DeviceTargetCard({
     super.key,
@@ -104,7 +114,7 @@ class DeviceTargetCard extends StatelessWidget {
     required this.subtitle,
     required this.onSend,
     this.isOnline = true,
-    this.icon = Icons.devices,
+    this.icon = Icons.devices_rounded,
     this.iconColor,
   });
 
@@ -117,39 +127,72 @@ class DeviceTargetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveIconColor = iconColor ??
-        (isOnline ? AppTheme.success : AppTheme.textSecondary);
+    final color = iconColor ??
+        (isOnline ? AppTheme.success : AppTheme.text3);
 
     return Card(
-      child: ListTile(
-        leading: Icon(icon, color: effectiveIconColor, size: 22),
-        title: Text(
-          name,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isOnline ? AppTheme.textPrimary : AppTheme.textSecondary,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(fontSize: 12),
-        ),
-        trailing: onSend != null
-            ? IconButton(
-                icon: const Icon(Icons.send, size: 20),
-                onPressed: onSend,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: isOnline
+                    ? AppTheme.successGradient
+                    : AppTheme.offlineGradient,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppTheme.bgDeep, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isOnline ? AppTheme.text1 : AppTheme.text2,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppTheme.text2,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            StatusPill(
+              label: isOnline ? 'Ready' : 'Offline',
+              color: color,
+            ),
+            const SizedBox(width: 8),
+            if (onSend != null)
+              IconButton(
                 tooltip: 'Send file',
-                color: AppTheme.primaryColor,
-              )
-            : null,
-        enabled: isOnline,
+                icon: const Icon(Icons.send_rounded),
+                color: AppTheme.accentColor,
+                onPressed: onSend,
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Compact status banner for warnings and info
+/// Compact status banner for warnings and info.
 class StatusBanner extends StatelessWidget {
   const StatusBanner({
     super.key,
@@ -166,56 +209,60 @@ class StatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color backgroundColor;
-    Color iconColor;
-    IconData defaultIcon;
-
+    final Color color;
+    final IconData defaultIcon;
     switch (type) {
       case StatusBannerType.success:
-        backgroundColor = AppTheme.success.withAlpha(24);
-        iconColor = AppTheme.success;
-        defaultIcon = Icons.check_circle;
+        color = AppTheme.success;
+        defaultIcon = Icons.check_circle_rounded;
         break;
       case StatusBannerType.warning:
-        backgroundColor = AppTheme.warning.withAlpha(24);
-        iconColor = AppTheme.warning;
-        defaultIcon = Icons.warning;
+        color = AppTheme.warning;
+        defaultIcon = Icons.warning_amber_rounded;
         break;
       case StatusBannerType.error:
-        backgroundColor = AppTheme.error.withAlpha(24);
-        iconColor = AppTheme.error;
-        defaultIcon = Icons.error;
+        color = AppTheme.error;
+        defaultIcon = Icons.error_outline_rounded;
         break;
       case StatusBannerType.info:
-      default:
-        backgroundColor = AppTheme.primaryLight;
-        iconColor = AppTheme.primaryColor;
-        defaultIcon = Icons.info_outline;
+        color = AppTheme.accentColor;
+        defaultIcon = Icons.info_outline_rounded;
+        break;
     }
 
-    return Card(
-      color: backgroundColor,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Icon(icon ?? defaultIcon, size: 18, color: iconColor),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(fontSize: 12),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon ?? defaultIcon, size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            if (onDismiss != null)
-              IconButton(
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: onDismiss,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+          ),
+          if (onDismiss != null)
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 16),
+              color: color,
+              onPressed: onDismiss,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(
+                width: 28,
+                height: 28,
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -223,13 +270,9 @@ class StatusBanner extends StatelessWidget {
 
 enum StatusBannerType { success, warning, error, info }
 
-/// Section header for grouping content
+/// Section header for grouping content.
 class SectionHeader extends StatelessWidget {
-  const SectionHeader({
-    super.key,
-    required this.title,
-    this.action,
-  });
+  const SectionHeader({super.key, required this.title, this.action});
 
   final String title;
   final Widget? action;
@@ -237,16 +280,17 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
           Expanded(
             child: Text(
               title,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1,
+                letterSpacing: 0.3,
               ),
             ),
           ),
@@ -257,7 +301,7 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// Connection status indicator
+/// Connection status indicator (relay / LAN / BLE).
 class ConnectionStatusPanel extends StatelessWidget {
   const ConnectionStatusPanel({
     super.key,
@@ -272,26 +316,34 @@ class ConnectionStatusPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: isConnected ? AppTheme.success.withAlpha(24) : AppTheme.warning.withAlpha(24),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Icon(
-              isConnected ? Icons.cloud_done : Icons.cloud_off,
-              size: 18,
-              color: isConnected ? AppTheme.success : AppTheme.warning,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                isConnected ? connectedMessage : disconnectedMessage,
-                style: const TextStyle(fontSize: 12),
+    final color = isConnected ? AppTheme.success : AppTheme.warning;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isConnected ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+            color: color,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              isConnected ? connectedMessage : disconnectedMessage,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ],
-        ),
+          ),
+          if (isConnected) const PulsingDot(color: AppTheme.success, size: 6),
+        ],
       ),
     );
   }

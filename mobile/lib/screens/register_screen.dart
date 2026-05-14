@@ -62,7 +62,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      backgroundColor: AppTheme.bgPage,
+      appBar: AppBar(backgroundColor: AppTheme.bgPage),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -72,29 +73,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const AppIconBadge(
-                    icon: Icons.folder_shared_rounded,
-                    color: AppTheme.primaryColor,
-                    size: 56,
+                  Center(
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: AppTheme.accentGlow(alpha: 0.35),
+                      ),
+                      child: const Icon(
+                        Icons.bolt_rounded,
+                        color: AppTheme.bgDeep,
+                        size: 36,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 22),
                   const Text(
                     'Create account',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1,
                     ),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Keep files, devices, and relay transfers in sync.',
-                    style: TextStyle(color: AppTheme.textSecondary),
+                    'Sync devices, history and quotas in one place.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppTheme.text2),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 26),
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -108,7 +122,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               controller: _usernameController,
                               decoration: const InputDecoration(
                                 labelText: 'Username',
-                                prefixIcon: Icon(Icons.person_outline),
+                                prefixIcon:
+                                    Icon(Icons.person_outline_rounded),
                               ),
                               textInputAction: TextInputAction.next,
                               validator: (v) => (v == null || v.trim().isEmpty)
@@ -120,7 +135,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               controller: _emailController,
                               decoration: const InputDecoration(
                                 labelText: 'Email',
-                                prefixIcon: Icon(Icons.mail_outline),
+                                prefixIcon: Icon(Icons.mail_outline_rounded),
                               ),
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
@@ -137,7 +152,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               controller: _passwordController,
                               decoration: InputDecoration(
                                 labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock_outline),
+                                prefixIcon:
+                                    const Icon(Icons.lock_outline_rounded),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscurePassword
@@ -164,7 +180,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               controller: _confirmPasswordController,
                               decoration: const InputDecoration(
                                 labelText: 'Confirm password',
-                                prefixIcon: Icon(Icons.lock_reset_outlined),
+                                prefixIcon:
+                                    Icon(Icons.lock_reset_outlined),
                               ),
                               obscureText: _obscurePassword,
                               textInputAction: TextInputAction.done,
@@ -173,19 +190,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   (v == null || v.isEmpty) ? 'Required' : null,
                             ),
                             const SizedBox(height: 18),
-                            FilledButton(
-                              onPressed: _isLoading ? null : _handleRegister,
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text('Create account'),
-                            ),
+                            if (_isLoading)
+                              const SizedBox(
+                                height: 48,
+                                child: Center(
+                                  child: SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              CyanButton(
+                                label: 'Create account',
+                                icon: Icons.arrow_forward_rounded,
+                                expanded: true,
+                                onPressed: _handleRegister,
+                              ),
                           ],
                         ),
                       ),
@@ -197,7 +221,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       const Text(
                         'Already have an account?',
-                        style: TextStyle(color: AppTheme.textSecondary),
+                        style: TextStyle(color: AppTheme.text2),
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(
@@ -219,7 +243,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 class _AuthError extends StatelessWidget {
   const _AuthError({required this.message});
-
   final String message;
 
   @override
@@ -227,17 +250,23 @@ class _AuthError extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.error.withAlpha(22),
-        borderRadius: BorderRadius.circular(8),
+        color: AppTheme.error.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        border: Border.all(color: AppTheme.error.withValues(alpha: 0.40)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: AppTheme.error, size: 18),
+          const Icon(Icons.error_outline_rounded,
+              color: AppTheme.error, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: AppTheme.error, fontSize: 13),
+              style: const TextStyle(
+                color: AppTheme.error,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
