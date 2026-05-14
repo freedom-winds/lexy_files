@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../config/theme.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/websocket_service.dart';
@@ -73,26 +74,26 @@ class _TransferScreenState extends State<TransferScreen>
                     unselectedLabelColor: AppTheme.text2,
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
-                    tabs: const [
+                    tabs: [
                       Tab(
                         height: 40,
                         child: _TabLabel(
                           icon: Icons.cloud_sync_rounded,
-                          label: 'Relay',
+                          label: context.l10n.t('transfer.tabRelay'),
                         ),
                       ),
                       Tab(
                         height: 40,
                         child: _TabLabel(
                           icon: Icons.wifi_rounded,
-                          label: 'LAN',
+                          label: context.l10n.t('transfer.tabLan'),
                         ),
                       ),
                       Tab(
                         height: 40,
                         child: _TabLabel(
                           icon: Icons.bluetooth_rounded,
-                          label: 'Bluetooth',
+                          label: context.l10n.t('transfer.tabBluetooth'),
                         ),
                       ),
                     ],
@@ -119,22 +120,23 @@ class _TransferHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final l = context.l10n;
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Transfer',
-          style: TextStyle(
+          l.t('transfer.title'),
+          style: const TextStyle(
             color: AppTheme.text1,
             fontSize: 26,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.3,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
-          'Send files via account relay, local network or Bluetooth.',
-          style: TextStyle(color: AppTheme.text2, fontSize: 13),
+          l.t('transfer.subtitle'),
+          style: const TextStyle(color: AppTheme.text2, fontSize: 13),
         ),
       ],
     );
@@ -608,14 +610,15 @@ class _RelayTabState extends State<_RelayTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final l = context.l10n;
+
     if (!auth.isAuthenticated) {
       return AppEmptyState(
         icon: Icons.lock_outline_rounded,
-        title: 'Sign in to use device transfer',
-        subtitle:
-            'Same-account relay needs you to be signed in so your devices can find each other.',
+        title: l.t('transfer.signInPrompt'),
+        subtitle: l.t('transfer.signInPromptHint'),
         action: CyanButton(
-          label: 'Sign in',
+          label: l.t('auth.signIn'),
           onPressed: () => Navigator.of(context).pushNamed('/login'),
         ),
       );
@@ -624,9 +627,12 @@ class _RelayTabState extends State<_RelayTab> {
     if (_error != null) {
       return AppEmptyState(
         icon: Icons.error_outline_rounded,
-        title: 'Could not load devices',
+        title: l.t('transfer.couldNotLoad'),
         subtitle: _error!,
-        action: CyanButton(label: 'Retry', onPressed: _fetchDevices),
+        action: CyanButton(
+          label: l.t('transfer.retry'),
+          onPressed: _fetchDevices,
+        ),
       );
     }
 

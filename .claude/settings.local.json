@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(wc -l /f/projects/lexy_files/backend/app/**/*.py)",
-      "Bash(python -m pytest tests/ -q)"
-    ]
-  }
-}

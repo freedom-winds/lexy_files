@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../config/theme.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/device_presence_service.dart';
@@ -68,27 +69,28 @@ class _DevicesScreenState extends State<DevicesScreen> {
   }
 
   Future<void> _registerDevice() async {
+    final l = context.l10n;
     final nameCtrl = TextEditingController();
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Register device'),
+        title: Text(l.t('devices.registerDevice')),
         content: TextField(
           controller: nameCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Device name',
-            hintText: 'My device',
+          decoration: InputDecoration(
+            labelText: l.t('devices.deviceName'),
+            hintText: l.t('devices.deviceNameHint'),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l.t('devices.cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Register'),
+            child: Text(l.t('devices.register')),
           ),
         ],
       ),
@@ -155,20 +157,21 @@ class _DevicesScreenState extends State<DevicesScreen> {
   }
 
   Future<void> _deleteDevice(int id, String name) async {
+    final l = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove device'),
-        content: Text('Remove "$name" from your account?'),
+        title: Text(l.t('devices.removeDevice')),
+        content: Text(l.t('devices.removeConfirm', params: {'name': name})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l.t('devices.cancel')),
           ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: AppTheme.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove'),
+            child: Text(l.t('devices.remove')),
           ),
         ],
       ),
@@ -223,6 +226,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
   Widget _buildBody() {
     final auth = context.watch<AuthProvider>();
+    final l = context.l10n;
 
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
@@ -231,11 +235,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
     if (!auth.isAuthenticated) {
       return AppEmptyState(
         icon: Icons.lock_outline_rounded,
-        title: 'Sign in to see your devices',
-        subtitle:
-            'Linked devices and their online status appear here once you sign in.',
+        title: l.t('devices.signInPrompt'),
+        subtitle: l.t('devices.signInPromptHint'),
         action: CyanButton(
-          label: 'Sign in',
+          label: l.t('auth.signIn'),
           onPressed: () => Navigator.of(context).pushNamed('/login'),
         ),
       );
@@ -244,18 +247,21 @@ class _DevicesScreenState extends State<DevicesScreen> {
     if (_error != null) {
       return AppEmptyState(
         icon: Icons.error_outline_rounded,
-        title: 'Could not load devices',
+        title: l.t('devices.couldNotLoad'),
         subtitle: _error!,
-        action: CyanButton(label: 'Retry', onPressed: _fetchDevices),
+        action: CyanButton(
+          label: l.t('devices.retry'),
+          onPressed: _fetchDevices,
+        ),
       );
     }
     if (_devices.isEmpty) {
       return AppEmptyState(
         icon: Icons.devices_other_rounded,
-        title: 'No devices yet',
-        subtitle: 'This device will appear here once you sign in.',
+        title: l.t('devices.noDevices'),
+        subtitle: l.t('devices.noDevicesHint'),
         action: CyanButton(
-          label: 'Register this device',
+          label: l.t('devices.registerThisDevice'),
           icon: Icons.add_rounded,
           onPressed: _registerDevice,
         ),
@@ -286,31 +292,32 @@ class _DevicesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Devices',
-                style: TextStyle(
+                l.t('devices.title'),
+                style: const TextStyle(
                   color: AppTheme.text1,
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.3,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                'Devices linked to your Lexy Files account.',
-                style: TextStyle(color: AppTheme.text2, fontSize: 13),
+                l.t('devices.subtitle'),
+                style: const TextStyle(color: AppTheme.text2, fontSize: 13),
               ),
             ],
           ),
         ),
         CyanButton(
-          label: 'Register device',
+          label: l.t('devices.registerDevice'),
           icon: Icons.add_rounded,
           onPressed: onAdd,
         ),
@@ -331,11 +338,12 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Row(
       children: [
         Expanded(
           child: _SummaryTile(
-            label: 'Total devices',
+            label: l.t('devices.totalDevices'),
             value: '$total',
             icon: Icons.devices_rounded,
             accent: AppTheme.accentColor,
@@ -344,7 +352,7 @@ class _SummaryRow extends StatelessWidget {
         const SizedBox(width: 14),
         Expanded(
           child: _SummaryTile(
-            label: 'Online now',
+            label: l.t('devices.onlineNow'),
             value: '$online',
             icon: Icons.sensors_rounded,
             accent: AppTheme.success,
@@ -354,7 +362,7 @@ class _SummaryRow extends StatelessWidget {
         const SizedBox(width: 14),
         Expanded(
           child: _SummaryTile(
-            label: 'Offline',
+            label: l.t('devices.offline'),
             value: '$offline',
             icon: Icons.cloud_off_rounded,
             accent: AppTheme.text2,
@@ -517,7 +525,9 @@ class _DeviceCard extends StatelessWidget {
                     spacing: 8,
                     children: [
                       Text(
-                        platform.isNotEmpty ? platform : 'Unknown platform',
+                        platform.isNotEmpty
+                            ? platform
+                            : context.l10n.t('devices.unknownPlatform'),
                         style: const TextStyle(
                           color: AppTheme.text2,
                           fontSize: 12,
@@ -542,7 +552,10 @@ class _DeviceCard extends StatelessWidget {
                       ),
                       if (!isOnline && lastSeen.isNotEmpty)
                         Text(
-                          'last seen $lastSeen',
+                          context.l10n.t(
+                            'devices.lastSeen',
+                            params: {'time': lastSeen},
+                          ),
                           style: const TextStyle(
                             color: AppTheme.text3,
                             fontSize: 12,
@@ -555,13 +568,15 @@ class _DeviceCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             StatusPill(
-              label: isOnline ? 'Online' : 'Offline',
+              label: isOnline
+                  ? context.l10n.t('devices.online')
+                  : context.l10n.t('devices.offline'),
               color: accent,
               icon: isOnline ? Icons.circle : null,
             ),
             const SizedBox(width: 8),
             IconButton(
-              tooltip: 'Remove',
+              tooltip: context.l10n.t('devices.remove'),
               icon: const Icon(Icons.delete_outline_rounded),
               onPressed: onDelete,
             ),

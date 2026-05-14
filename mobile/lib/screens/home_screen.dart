@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
+import '../l10n/app_localizations.dart';
 import '../models/file_info.dart';
 import '../providers/auth_provider.dart';
 import '../providers/navigation_provider.dart';
@@ -102,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final code = _pickupCodeController.text.trim().toUpperCase();
     if (code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pickup codes are 6 characters long.')),
+        SnackBar(content: Text(context.l10n.t('home.codeMustBe6'))),
       );
       return;
     }
@@ -168,37 +169,41 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       alignment: WrapAlignment.spaceBetween,
       spacing: 12,
       runSpacing: 12,
       children: [
-        const SizedBox(
+        SizedBox(
           width: 480,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Home',
-                style: TextStyle(
+                l.t('home.title'),
+                style: const TextStyle(
                   color: AppTheme.text1,
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.3,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                'Send a file. Share a pickup code. Done.',
-                style: TextStyle(color: AppTheme.text2, fontSize: 13),
+                l.t('home.subtitle'),
+                style: const TextStyle(
+                  color: AppTheme.text2,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
         ),
         if (auth.isAuthenticated)
           PopupMenuButton<String>(
-            tooltip: auth.user?.username ?? 'Account',
+            tooltip: auth.user?.username ?? l.t('auth.account'),
             onSelected: (v) {
               if (v == 'logout') auth.logout();
             },
@@ -206,7 +211,7 @@ class _TopBar extends StatelessWidget {
               PopupMenuItem(
                 enabled: false,
                 child: Text(
-                  auth.user?.username ?? 'User',
+                  auth.user?.username ?? l.t('auth.account'),
                   style: const TextStyle(
                     color: AppTheme.text1,
                     fontWeight: FontWeight.w700,
@@ -214,7 +219,10 @@ class _TopBar extends StatelessWidget {
                 ),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(value: 'logout', child: Text('Sign out')),
+              PopupMenuItem(
+                value: 'logout',
+                child: Text(l.t('auth.signOut')),
+              ),
             ],
             child: Container(
               padding: const EdgeInsets.symmetric(
@@ -243,7 +251,7 @@ class _TopBar extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    auth.user?.username ?? 'Account',
+                    auth.user?.username ?? l.t('auth.account'),
                     style: const TextStyle(
                       color: AppTheme.text1,
                       fontWeight: FontWeight.w600,
@@ -266,11 +274,11 @@ class _TopBar extends StatelessWidget {
               TextButton(
                 onPressed: () =>
                     Navigator.of(context).pushNamed('/login'),
-                child: const Text('Sign in'),
+                child: Text(l.t('auth.signIn')),
               ),
               const SizedBox(width: 6),
               CyanButton(
-                label: 'Create account',
+                label: l.t('auth.createAccount'),
                 dense: true,
                 onPressed: () =>
                     Navigator.of(context).pushNamed('/register'),
@@ -323,18 +331,18 @@ class _PickupHeroCard extends StatelessWidget {
                   color: AppTheme.accentColor.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(AppTheme.radiusPill),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.flash_on_rounded,
                       size: 14,
                       color: AppTheme.accentColor,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
-                      'Quick send',
-                      style: TextStyle(
+                      context.l10n.t('home.quickSend'),
+                      style: const TextStyle(
                         color: AppTheme.accentColor,
                         fontWeight: FontWeight.w700,
                         fontSize: 11,
@@ -347,7 +355,7 @@ class _PickupHeroCard extends StatelessWidget {
               const Spacer(),
               if (result != null)
                 IconButton(
-                  tooltip: 'Send another',
+                  tooltip: context.l10n.t('home.sendAnother'),
                   icon: const Icon(Icons.refresh_rounded),
                   color: AppTheme.text2,
                   onPressed: onReset,
@@ -380,12 +388,13 @@ class _PickFileBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Drop a file or pick one',
-          style: TextStyle(
+        Text(
+          l.t('home.dropAFile'),
+          style: const TextStyle(
             color: AppTheme.text1,
             fontSize: 28,
             fontWeight: FontWeight.w800,
@@ -393,9 +402,9 @@ class _PickFileBlock extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'You will get a 6-character pickup code to share.',
-          style: TextStyle(color: AppTheme.text2, fontSize: 13),
+        Text(
+          l.t('home.youWillGetCode'),
+          style: const TextStyle(color: AppTheme.text2, fontSize: 13),
         ),
         const SizedBox(height: 22),
         if (error != null) ...[
@@ -433,22 +442,25 @@ class _PickFileBlock extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Choose a file to upload',
-                style: TextStyle(
+              Text(
+                l.t('home.chooseFileToUpload'),
+                style: const TextStyle(
                   color: AppTheme.text1,
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Documents, images, archives — up to your plan limit.',
-                style: TextStyle(color: AppTheme.text2, fontSize: 12),
+              Text(
+                l.t('home.fileTypesHint'),
+                style: const TextStyle(
+                  color: AppTheme.text2,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 18),
               CyanButton(
-                label: 'Choose file',
+                label: l.t('home.chooseFile'),
                 icon: Icons.attach_file_rounded,
                 onPressed: onPick,
               ),
@@ -469,9 +481,9 @@ class _UploadingBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Uploading…',
-          style: TextStyle(
+        Text(
+          context.l10n.t('home.uploading'),
+          style: const TextStyle(
             color: AppTheme.text1,
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -516,12 +528,13 @@ class _PickupCodeBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Your pickup code',
-          style: TextStyle(
+        Text(
+          l.t('home.yourPickupCode'),
+          style: const TextStyle(
             color: AppTheme.text2,
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -600,7 +613,9 @@ class _PickupCodeBlock extends StatelessWidget {
         const SizedBox(height: 22),
         Center(
           child: CyanButton(
-            label: copied ? 'Copied' : 'Copy code',
+            label: copied
+                ? l.t('home.copied')
+                : l.t('home.copyCode'),
             icon: copied ? Icons.check_rounded : Icons.copy_rounded,
             onPressed: onCopy,
           ),
@@ -620,6 +635,7 @@ class _ReceiveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -638,19 +654,19 @@ class _ReceiveCard extends StatelessWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
-                        'Receive by code',
-                        style: TextStyle(
+                        l.t('home.receiveByCode'),
+                        style: const TextStyle(
                           color: AppTheme.text1,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'Enter the 6-character pickup code.',
-                        style: TextStyle(
+                        l.t('home.enterPickupCode'),
+                        style: const TextStyle(
                           color: AppTheme.text2,
                           fontSize: 12,
                         ),
@@ -688,7 +704,7 @@ class _ReceiveCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 CyanButton(
-                  label: 'Pickup',
+                  label: l.t('home.pickup'),
                   icon: Icons.arrow_forward_rounded,
                   onPressed: onSubmit,
                 ),
@@ -707,29 +723,30 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nav = context.read<NavigationProvider>();
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const AppSectionHeader(title: 'Workspace'),
+        AppSectionHeader(title: l.t('home.workspace')),
         AppActionTile(
           icon: Icons.folder_rounded,
-          title: 'My Files',
-          subtitle: 'Manage your uploads & pickup codes',
+          title: l.t('nav.files'),
+          subtitle: l.t('home.manageUploads'),
           onTap: nav.navigateToFiles,
         ),
         const SizedBox(height: 8),
         AppActionTile(
           icon: Icons.devices_rounded,
-          title: 'Devices',
-          subtitle: 'See who is online and ready to receive',
+          title: l.t('nav.devices'),
+          subtitle: l.t('home.devicesOnline'),
           color: AppTheme.success,
           onTap: nav.navigateToDevices,
         ),
         const SizedBox(height: 8),
         AppActionTile(
           icon: Icons.swap_horiz_rounded,
-          title: 'Transfer',
-          subtitle: 'Direct send via relay, LAN or Bluetooth',
+          title: l.t('nav.transfer'),
+          subtitle: l.t('home.transferDirect'),
           color: AppTheme.info,
           onTap: nav.navigateToTransfer,
         ),
@@ -745,6 +762,7 @@ class _AuthPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -752,29 +770,32 @@ class _AuthPrompt extends StatelessWidget {
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 560;
             final intro = Row(
-              children: const [
-                AppIconBadge(
+              children: [
+                const AppIconBadge(
                   icon: Icons.lock_outline_rounded,
                   color: AppTheme.info,
                   useGradient: false,
                 ),
-                SizedBox(width: 14),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Sign in to sync',
-                        style: TextStyle(
+                        l.t('auth.signInToSync'),
+                        style: const TextStyle(
                           color: AppTheme.text1,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'Sync your devices, history and quotas across the cloud.',
-                        style: TextStyle(color: AppTheme.text2, fontSize: 12),
+                        l.t('auth.signInDescription'),
+                        style: const TextStyle(
+                          color: AppTheme.text2,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -789,9 +810,12 @@ class _AuthPrompt extends StatelessWidget {
               children: [
                 OutlinedButton(
                   onPressed: onCreate,
-                  child: const Text('Create account'),
+                  child: Text(l.t('auth.createAccount')),
                 ),
-                CyanButton(label: 'Sign in', onPressed: onSignIn),
+                CyanButton(
+                  label: l.t('auth.signIn'),
+                  onPressed: onSignIn,
+                ),
               ],
             );
 

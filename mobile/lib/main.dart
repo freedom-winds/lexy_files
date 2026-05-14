@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'config/theme.dart';
+import 'l10n/app_localizations.dart';
 import 'services/api_service.dart';
 import 'services/device_presence_service.dart';
 import 'providers/auth_provider.dart';
+import 'providers/locale_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -31,6 +34,9 @@ void main() {
         ChangeNotifierProvider<NavigationProvider>(
           create: (_) => NavigationProvider(),
         ),
+        ChangeNotifierProvider<LocaleProvider>(
+          create: (_) => LocaleProvider(),
+        ),
       ],
       child: const _PresenceController(child: LexyFilesApp()),
     ),
@@ -42,10 +48,30 @@ class LexyFilesApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeProv = context.watch<LocaleProvider>();
     return MaterialApp(
       title: 'Lexy Files',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      locale: localeProv.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      localeResolutionCallback: (deviceLocale, supported) {
+        // Honor explicit override first.
+        if (localeProv.locale != null) return localeProv.locale;
+
+        if (deviceLocale != null) {
+          for (final l in supported) {
+            if (l.languageCode == deviceLocale.languageCode) return l;
+          }
+        }
+        return const Locale('en');
+      },
       home: const _AuthGate(),
       onGenerateRoute: (settings) {
         switch (settings.name) {

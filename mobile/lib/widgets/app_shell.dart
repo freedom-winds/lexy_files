@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/locale_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../screens/home_screen.dart';
 import '../screens/my_files_screen.dart';
@@ -17,33 +19,37 @@ import '../screens/transfer_screen.dart';
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
 
-  static const _items = <_NavItem>[
-    _NavItem(
-      label: 'Home',
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home_rounded,
-    ),
-    _NavItem(
-      label: 'My Files',
-      icon: Icons.folder_outlined,
-      selectedIcon: Icons.folder_rounded,
-    ),
-    _NavItem(
-      label: 'Devices',
-      icon: Icons.devices_outlined,
-      selectedIcon: Icons.devices_rounded,
-    ),
-    _NavItem(
-      label: 'Transfer',
-      icon: Icons.swap_horiz_outlined,
-      selectedIcon: Icons.swap_horiz_rounded,
-    ),
-  ];
+  static List<_NavItem> _itemsFor(BuildContext context) {
+    final l = context.l10n;
+    return <_NavItem>[
+      _NavItem(
+        label: l.t('nav.home'),
+        icon: Icons.home_outlined,
+        selectedIcon: Icons.home_rounded,
+      ),
+      _NavItem(
+        label: l.t('nav.files'),
+        icon: Icons.folder_outlined,
+        selectedIcon: Icons.folder_rounded,
+      ),
+      _NavItem(
+        label: l.t('nav.devices'),
+        icon: Icons.devices_outlined,
+        selectedIcon: Icons.devices_rounded,
+      ),
+      _NavItem(
+        label: l.t('nav.transfer'),
+        icon: Icons.swap_horiz_outlined,
+        selectedIcon: Icons.swap_horiz_rounded,
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final nav = context.watch<NavigationProvider>();
     final isWide = MediaQuery.of(context).size.width >= 720;
+    final items = _itemsFor(context);
 
     final screens = <Widget>[
       const HomeScreen(),
@@ -58,7 +64,7 @@ class AppShell extends StatelessWidget {
         body: Row(
           children: [
             _Sidebar(
-              items: _items,
+              items: items,
               selectedIndex: nav.selectedIndex,
               onSelect: nav.navigateToTab,
             ),
@@ -82,7 +88,7 @@ class AppShell extends StatelessWidget {
           selectedIndex: nav.selectedIndex,
           onDestinationSelected: nav.navigateToTab,
           backgroundColor: Colors.transparent,
-          destinations: _items
+          destinations: items
               .map(
                 (it) => NavigationDestination(
                   icon: Icon(it.icon),
@@ -122,9 +128,10 @@ class _Sidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final l = context.l10n;
     final userLabel = auth.isAuthenticated
-        ? (auth.user?.username ?? 'Account')
-        : 'Guest';
+        ? (auth.user?.username ?? l.t('auth.account'))
+        : l.t('auth.guest');
 
     return Container(
       width: AppTheme.sidebarWidth,
@@ -181,6 +188,7 @@ class _Sidebar extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const _LanguageButton(),
                 ],
               ),
             ),
@@ -207,8 +215,11 @@ class _Sidebar extends StatelessWidget {
               child: _AccountRow(
                 name: userLabel,
                 isAuthenticated: auth.isAuthenticated,
-                onSignIn: () =>
-                    Navigator.of(context).pushNamed('/login'),
+                signedInLabel: l.t('auth.signedIn'),
+                notSignedInLabel: l.t('auth.notSignedIn'),
+                signInTooltip: l.t('auth.signIn'),
+                signOutTooltip: l.t('auth.signOut'),
+                onSignIn: () => Navigator.of(context).pushNamed('/login'),
                 onSignOut: auth.logout,
               ),
             ),
@@ -288,16 +299,132 @@ class _SidebarItemState extends State<_SidebarItem> {
   }
 }
 
+/// Globe button that opens a bottom sheet to switch the app language.
+///
+/// Lives in the brand row of the sidebar so it stays reachable on every page,
+/// without claiming the limited bottom-nav space on phones.
+class _LanguageButton extends StatelessWidget {
+  const _LanguageButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      iconSize: 18,
+      tooltip: context.l10n.t('settings.language'),
+      icon: const Icon(
+        Icons.translate_rounded,
+        color: AppTheme.text2,
+      ),
+      onPressed: () => showLanguagePicker(context),
+    );
+  }
+}
+
+/// Public helper so other surfaces (e.g. login screen) can open the same picker.
+Future<void> showLanguagePicker(BuildContext context) async {
+  final l = context.l10n;
+  final localeProv = context.read<LocaleProvider>();
+  final current = localeProv.locale?.languageCode;
+
+  await showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: AppTheme.surfaceColor,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) {
+      Widget tile({
+        required String label,
+        required String? code,
+        required bool selected,
+      }) {
+        return ListTile(
+          leading: Icon(
+            selected
+                ? Icons.radio_button_checked_rounded
+                : Icons.radio_button_off_rounded,
+            color: selected ? AppTheme.accentColor : AppTheme.text3,
+          ),
+          title: Text(
+            label,
+            style: const TextStyle(color: AppTheme.text1),
+          ),
+          onTap: () async {
+            Navigator.pop(ctx);
+            if (code == null) {
+              await localeProv.useSystemDefault();
+            } else {
+              await localeProv.setLocale(code);
+            }
+          },
+        );
+      }
+
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Text(
+                  l.t('settings.language'),
+                  style: const TextStyle(
+                    color: AppTheme.text1,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              tile(
+                label: l.t('settings.systemDefault'),
+                code: null,
+                selected: !localeProv.isUserOverride,
+              ),
+              const Divider(color: AppTheme.borderSubtle, height: 1),
+              tile(
+                label: l.t('settings.languageEnglish'),
+                code: 'en',
+                selected: localeProv.isUserOverride && current == 'en',
+              ),
+              tile(
+                label: l.t('settings.languageChinese'),
+                code: 'zh',
+                selected: localeProv.isUserOverride && current == 'zh',
+              ),
+              tile(
+                label: l.t('settings.languageFrench'),
+                code: 'fr',
+                selected: localeProv.isUserOverride && current == 'fr',
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
 class _AccountRow extends StatelessWidget {
   const _AccountRow({
     required this.name,
     required this.isAuthenticated,
+    required this.signedInLabel,
+    required this.notSignedInLabel,
+    required this.signInTooltip,
+    required this.signOutTooltip,
     required this.onSignIn,
     required this.onSignOut,
   });
 
   final String name;
   final bool isAuthenticated;
+  final String signedInLabel;
+  final String notSignedInLabel;
+  final String signInTooltip;
+  final String signOutTooltip;
   final VoidCallback onSignIn;
   final VoidCallback onSignOut;
 
@@ -342,14 +469,15 @@ class _AccountRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  isAuthenticated ? 'Signed in' : 'Not signed in',
-                  style: const TextStyle(color: AppTheme.text2, fontSize: 11),
+                  isAuthenticated ? signedInLabel : notSignedInLabel,
+                  style:
+                      const TextStyle(color: AppTheme.text2, fontSize: 11),
                 ),
               ],
             ),
           ),
           IconButton(
-            tooltip: isAuthenticated ? 'Sign out' : 'Sign in',
+            tooltip: isAuthenticated ? signOutTooltip : signInTooltip,
             icon: Icon(
               isAuthenticated ? Icons.logout_rounded : Icons.login_rounded,
               size: 18,

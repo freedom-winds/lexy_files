@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
+import '../l10n/app_localizations.dart';
 import '../models/file_info.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -74,22 +75,26 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
 
   Future<void> _deleteFile(FileInfo file) async {
     final api = context.read<ApiService>();
+    final l = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete file?'),
+        title: Text(l.t('files.deleteFile')),
         content: Text(
-          'Delete "${file.originalFilename}"? This cannot be undone.',
+          l.t(
+            'files.deleteFileConfirm',
+            params: {'name': file.originalFilename},
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l.t('files.cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppTheme.error),
-            child: const Text('Delete'),
+            child: Text(l.t('files.confirmDelete')),
           ),
         ],
       ),
@@ -157,42 +162,47 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
   Widget _buildBody(List<FileInfo> files) {
     final auth = context.watch<AuthProvider>();
     
+    final l = context.l10n;
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     if (!auth.isAuthenticated) {
       return AppEmptyState(
         icon: Icons.lock_outline_rounded,
-        title: 'Sign in to see your files',
-        subtitle: 'Your uploaded files and pickup codes will appear here after you sign in.',
+        title: l.t('files.signInPrompt'),
+        subtitle: l.t('files.signInPromptHint'),
         action: CyanButton(
-          label: 'Sign in',
+          label: l.t('auth.signIn'),
           onPressed: () => Navigator.of(context).pushNamed('/login'),
         ),
       );
     }
-    
+
     if (_error != null) {
       return AppEmptyState(
         icon: Icons.error_outline_rounded,
-        title: 'Could not load files',
+        title: l.t('files.couldNotLoad'),
         subtitle: _error!,
-        action: CyanButton(label: 'Retry', onPressed: _fetchFiles),
+        action: CyanButton(
+          label: l.t('files.retry'),
+          onPressed: _fetchFiles,
+        ),
       );
     }
     if (_files.isEmpty) {
-      return const AppEmptyState(
+      return AppEmptyState(
         icon: Icons.folder_open_rounded,
-        title: 'No files yet',
-        subtitle: 'Upload something from Home to see it here.',
+        title: l.t('files.noFiles'),
+        subtitle: l.t('files.noFilesHint'),
       );
     }
     if (files.isEmpty) {
-      return const AppEmptyState(
+      return AppEmptyState(
         icon: Icons.search_off_rounded,
-        title: 'No matches',
-        subtitle: 'Try a different search term.',
+        title: l.t('files.noMatches'),
+        subtitle: l.t('files.noMatchesHint'),
       );
     }
 
@@ -242,15 +252,17 @@ class _FilesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
+    final subtitleKey = count == 1 ? 'files.subtitle' : 'files.subtitlePlural';
     return Row(
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'My Files',
-                style: TextStyle(
+              Text(
+                l.t('files.title'),
+                style: const TextStyle(
                   color: AppTheme.text1,
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
@@ -259,7 +271,7 @@ class _FilesHeader extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '$count file${count == 1 ? '' : 's'} in your library.',
+                l.t(subtitleKey, params: {'count': count}),
                 style: const TextStyle(color: AppTheme.text2, fontSize: 13),
               ),
             ],
@@ -269,16 +281,16 @@ class _FilesHeader extends StatelessWidget {
           width: 280,
           child: TextField(
             onChanged: onSearch,
-            decoration: const InputDecoration(
-              hintText: 'Search files…',
-              prefixIcon: Icon(Icons.search_rounded),
+            decoration: InputDecoration(
+              hintText: l.t('files.search'),
+              prefixIcon: const Icon(Icons.search_rounded),
               isDense: true,
             ),
           ),
         ),
         const SizedBox(width: 10),
         IconButton(
-          tooltip: 'Refresh',
+          tooltip: l.t('files.refresh'),
           icon: const Icon(Icons.refresh_rounded),
           onPressed: onRefresh,
         ),
@@ -292,37 +304,38 @@ class _FilesColumnHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       color: AppTheme.surface2,
-      child: const Row(
+      child: Row(
         children: [
-          SizedBox(width: 44),
-          SizedBox(width: 14),
+          const SizedBox(width: 44),
+          const SizedBox(width: 14),
           Expanded(
             flex: 4,
             child: Text(
-              'NAME',
+              l.t('files.colName'),
               style: _kColHeaderStyle,
             ),
           ),
           SizedBox(
             width: 130,
-            child: Text('PICKUP', style: _kColHeaderStyle),
+            child: Text(l.t('files.colPickup'), style: _kColHeaderStyle),
           ),
           SizedBox(
             width: 90,
-            child: Text('SIZE', style: _kColHeaderStyle),
+            child: Text(l.t('files.colSize'), style: _kColHeaderStyle),
           ),
           SizedBox(
             width: 100,
-            child: Text('STATUS', style: _kColHeaderStyle),
+            child: Text(l.t('files.colStatus'), style: _kColHeaderStyle),
           ),
           SizedBox(
             width: 130,
-            child: Text('EXPIRES', style: _kColHeaderStyle),
+            child: Text(l.t('files.colExpires'), style: _kColHeaderStyle),
           ),
-          SizedBox(width: 40),
+          const SizedBox(width: 40),
         ],
       ),
     );
@@ -465,13 +478,21 @@ class _FileRow extends StatelessWidget {
           SizedBox(
             width: 100,
             child: file.isExpired
-                ? const StatusPill(label: 'Expired', color: AppTheme.error)
-                : const StatusPill(label: 'Active', color: AppTheme.success),
+                ? StatusPill(
+                    label: context.l10n.t('files.statusExpired'),
+                    color: AppTheme.error,
+                  )
+                : StatusPill(
+                    label: context.l10n.t('files.statusActive'),
+                    color: AppTheme.success,
+                  ),
           ),
           SizedBox(
             width: 130,
             child: Text(
-              file.isExpired ? 'Expired' : formatRelativeDate(file.expiresAt),
+              file.isExpired
+                  ? context.l10n.t('files.expired')
+                  : formatRelativeDate(file.expiresAt),
               style: const TextStyle(
                 color: AppTheme.text2,
                 fontSize: 12,
@@ -479,7 +500,7 @@ class _FileRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Delete',
+            tooltip: context.l10n.t('files.delete'),
             icon: const Icon(Icons.delete_outline_rounded),
             onPressed: onDelete,
           ),
