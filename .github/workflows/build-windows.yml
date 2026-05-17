@@ -1,0 +1,51 @@
+name: Build Lexy Files Windows Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show Flutter version
+        run: flutter --version
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Build Windows release
+        run: >
+          flutter build windows --release
+          --dart-define=API_BASE_URL=https://fc.alexweb.space/api/v1
+          --dart-define=WS_URL=https://fc.alexweb.space
+
+      - name: Upload Windows release
+        uses: actions/upload-artifact@v4
+        with:
+          name: lexy-files-windows-release
+          path: mobile/build/windows/x64/runner/Release
+          if-no-files-found: error
